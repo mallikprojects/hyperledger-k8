@@ -96,9 +96,7 @@ spec:
 # third level: generate artifacts
 {{- $_ := set $vars "thirdStep" true }}
 
-{{- if or $vars.thirdStep (not $.Values.flow.artifacts.parallel) }}
     - 
-{{- end }}
       - name: generate-channel-artifacts
         template: generate-channel-artifacts
       
