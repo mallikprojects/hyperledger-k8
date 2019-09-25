@@ -54,9 +54,6 @@ spec:
   {{- end }} {{- /* peers */ -}}{{""}}
   {{- end }} {{- /* peer orgs */ -}}{{""}}
 
-  #- name: hlf-data
-  #  persistentVolumeClaim:
-  #    claimName: azurefile
   - name: hlf-scripts
     configMap:
       name: hlf-scripts
@@ -64,73 +61,6 @@ spec:
   - name: hlf-configtx
     secret:
       secretName: hlf-configtx.yaml
-#   - name: orderer-tlsca
-#     secret:
-#       # only use the first orderer
-#       secretName: hlf-orderer--{{ $ordererOrg.Name | lower }}-tlsca
-
-# {{- range $i, $org := .Values.PeerOrgs }}
-#   - name: org-{{ $org.Name | lower }}-msp
-#     secret:
-#       secretName: hlf-peer--{{ $org.Name | lower }}--msp
-#       items:
-#       - key: config.yaml
-#         path: config.yaml
-#       - key: admincert.pem
-#         path: admincerts/Admin@{{ $org.Domain}}-cert.pem
-#       - key: cacert.pem
-#         path: cacerts/ca.{{ $org.Domain}}-cert.pem
-#       - key: tlscacert.pem
-#         path: tlscacerts/tlsca.{{ $org.Domain}}-cert.pem
-# {{- end }} {{- /* PeerOrgs */ -}}{{""}}
-
-# {{- range $i, $org := .Values.OrdererOrgs }}
-#   - name: orderer-{{ $org.Name | lower }}-admin-msp
-#     secret:
-#       secretName: hlf-orderer--{{ $org.Name | lower }}--admin-msp
-#       items:
-#       - key: cert.pem
-#         path: signcerts/cert.pem
-#       - key: key.pem
-#         path: keystore/key.pem
-#       - key: cacert.pem
-#         path: cacerts/cert.pem
-#       - key: tlscacert.pem
-#         path: tlscacerts/cert.pem
-#       - key: admincert.pem
-#         path: admincerts/cert.pem
-
-# {{- range $i, $host := $org.Specs }}
-#   - name: orderer-{{ $org.Name | lower }}-{{ $host.Hostname | lower }}-tls
-#     secret:
-#       secretName: hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}-tls
-# {{ end }} {{- /* org.Specs */ -}}
-# {{ end }} {{- /* OrdererOrgs */ -}} {{ "" }}
-
-
-# {{- range $i, $org := .Values.PeerOrgs }}
-#   - name: peer-{{ $org.Name | lower }}-admin-msp
-#     secret:
-#       secretName: hlf-peer--{{ $org.Name | lower }}--admin-msp
-#       items:
-#       - key: cert.pem
-#         path: signcerts/cert.pem
-#       - key: key.pem
-#         path: keystore/key.pem
-#       - key: cacert.pem
-#         path: cacerts/cert.pem
-#       - key: tlscacert.pem
-#         path: tlscacerts/cert.pem
-#       - key: admincert.pem
-#         path: admincerts/cert.pem
-
-# {{- range $peerIndex := until ($org.Template.Count | int) }}
-# {{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
-#   - name: peer-{{ $org.Name | lower }}-{{ $peer | lower }}-tls
-#     secret:
-#       secretName: hlf-peer--{{ $org.Name | lower }}--{{ $peer | lower }}-tls
-# {{ end }} {{- /* Peers */ -}}
-# {{ end }} {{- /* PeerOrgs */ -}} {{ "" }}
 
 
   templates:
@@ -441,12 +371,6 @@ spec:
           subPath: admin/msp
           
 
-        #- mountPath: /hlf_config/orderer-tlsca
-        #  name: orderer-tlsca
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
         - mountPath: /hlf-scripts
           name: hlf-scripts
       
@@ -539,15 +463,6 @@ spec:
           name: hlf-peer-org--{{ $peerOrg.Name | lower }}
           subPath: msp
           
-        #- mountPath: /hlf_config/orderer-tlsca
-        #  name: orderer-tlsca
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
-
-        #- mountPath: /hlf_config/crypto-config/peerOrganizations/{{ $peerOrg.Domain}}/msp/
-        #  name: org-{{ $orgName | lower }}-msp
         - mountPath: /hlf_config/
           name: hlf-configtx
         - mountPath: /hlf-scripts
@@ -649,15 +564,7 @@ spec:
           name: hlf-peer-org--{{ $mount_org.Name | lower}}
         {{- end }}
 
-        #- mountPath: /hlf-orderer--{{ $ordererOrg.Name | lower}}
-        #  name: hlf-orderer--{{ $ordererOrg.Name | lower}}
-        
-        #- mountPath: /hlf-peer-org--{{ $peerOrg.Name | lower}}
-        #  name: hlf-peer-org--{{ $peerOrg.Name | lower}}
-
-        #- mountPath: /hlf-data
-        #  name: hlf-data
-
+  
         - mountPath: /hlf_config/orderer-tlsca
           name: hlf-orderer--{{ $ordererOrg.Name | lower }}
           subPath: msp/tlscacerts
@@ -673,15 +580,6 @@ spec:
           name: hlf-peer-org--{{ $peerOrg.Name | lower }}
           subPath: msp
 
-        #- mountPath: /hlf_config/orderer-tlsca
-        #  name: orderer-tlsca
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
-
-        #- mountPath: /hlf_config/crypto-config/peerOrganizations/{{ $peerOrg.Domain}}/msp/
-        #  name: org-{{ $peerOrg.Name | lower }}-msp
         - mountPath: /hlf-scripts
           name: hlf-scripts
       
@@ -758,12 +656,6 @@ spec:
           subPath: admin/msp
 
 
-        #- mountPath: /hlf_config/orderer-tlsca
-        #  name: orderer-tlsca
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
         - mountPath: /hlf-scripts
           name: hlf-scripts
       
@@ -836,12 +728,6 @@ spec:
           name: hlf-orderer--{{ $ordererOrg.Name | lower }}
           subPath: admin/msp
 
-        #- mountPath: /hlf_config/orderer-tlsca
-        #  name: orderer-tlsca
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
       
       env:
         - name: FABRIC_LOGGING_SPEC
@@ -932,15 +818,6 @@ spec:
           name: hlf-peer-org--{{ $orgName | lower }}
           subPath: msp
 
-        #- mountPath: /hlf_config/orderer-tlsca
-        #  name: orderer-tlsca
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
-
-        #- mountPath: /hlf_config/crypto-config/peerOrganizations/{{ $org.Domain}}/msp/
-        #  name: org-{{ $orgName | lower }}-msp
         - mountPath: /hlf_config/
           name: hlf-configtx
         - mountPath: /hlf-scripts
@@ -1032,15 +909,7 @@ spec:
           name: hlf-peer-org--{{ $orgName | lower }}
           subPath: admin/msp
 
-        #- mountPath: /hlf_config/orderer-tlsca
-        #  name: orderer-tlsca
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
-        #- mountPath: /etc/hyperledger/fabric/org-admin-msp/
-        #  name: peer-{{ $orgName | lower }}-admin-msp
-
+  
       env:
         - name: FABRIC_LOGGING_SPEC
           value: {{ $.Values.logLevel }}
@@ -1097,12 +966,6 @@ spec:
           name: hlf-orderer--{{ $ordererOrg.Name | lower }}
           subPath: admin/msp
 
-        #- mountPath: /hlf_config/orderer-tlsca
-        #  name: orderer-tlsca
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
       
       env:
         - name: FABRIC_LOGGING_SPEC

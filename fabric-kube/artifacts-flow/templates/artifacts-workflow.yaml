@@ -13,6 +13,8 @@ spec:
     configMap:
       name: hlf-scripts
       defaultMode: 0777 # make scripts executable
+
+  #orderer volumes
   {{- range $i, $org := .Values.OrdererOrgs }}
   - name: hlf-orderer--{{ $org.Name | lower }}
     persistentVolumeClaim:
@@ -28,6 +30,8 @@ spec:
 
   {{- end }} {{- /* orderer hosts */ -}}{{""}}
   {{- end }} {{- /* orderer orgs */ -}}{{""}}
+  
+  #peer org volumes
   {{- range $i, $org := .Values.PeerOrgs }}
   - name: hlf-peer-org--{{ $org.Name | lower }}
     persistentVolumeClaim:
@@ -154,7 +158,7 @@ spec:
 
 
 
-# leaf register orderer identify templates
+# leaf register orderer identity templates
 {{- range $i, $ordererOrg := .Values.OrdererOrgs }}
   - name: register-orderer--{{ $ordererOrg.Name | lower }}
     inputs:
@@ -209,11 +213,11 @@ spec:
         - name: FABRIC_CA_CLIENT_HOME
           value: /etc/hyperledger/cas/ca-{{ $ordererOrg.Name | lower }}
         - name: CA_ADMIN_USER
-          value: admin
+          value: {{ $.Values.ca.userName }}
         - name: CA_ADMIN_PASS
-          value: adminpw
+          value: {{ $.Values.ca.password }}
         - name: CA_ADMIN_USER_PASS
-          value: admin:adminpw
+          value: {{ $.Values.ca.userName }}:{{ $.Values.ca.password }}
         - name: CA_HOST
           value: hlf-ca--{{ $ordererOrg.Name | lower }}
         - name: ORDERER_ADMIN_NAME
@@ -288,11 +292,11 @@ spec:
         - name: FABRIC_CA_CLIENT_HOME
           value: /etc/hyperledger/cas/ca-{{ $org.Name | lower }}
         - name: CA_ADMIN_USER
-          value: admin
+          value: {{ $.Values.ca.userName }}
         - name: CA_ADMIN_PASS
-          value: adminpw
+          value: {{ $.Values.ca.password }}
         - name: CA_ADMIN_USER_PASS
-          value: admin:adminpw
+          value: {{ $.Values.ca.userName }}:{{ $.Values.ca.password }}
         - name: CA_HOST
           value: hlf-ca--{{ $org.Name | lower }}
         - name: ORG_ADMIN_NAME
@@ -378,11 +382,11 @@ spec:
         - name: FABRIC_CA_CLIENT_HOME
           value: /etc/hyperledger/cas/ca-{{ $org.Name | lower }}
         - name: CA_ADMIN_USER
-          value: admin
+          value: {{ $.Values.ca.userName }}
         - name: CA_ADMIN_PASS
-          value: adminpw
+          value: {{ $.Values.ca.password }}
         - name: CA_ADMIN_USER_PASS
-          value: admin:adminpw
+          value: {{ $.Values.ca.userName }}:{{ $.Values.ca.password }}
         - name: CA_HOST
           value: hlf-ca--{{ $org.Name | lower }}
         - name: ORG_ADMIN_NAME
@@ -477,11 +481,11 @@ spec:
         - name: FABRIC_CA_CLIENT_HOME
           value: /etc/hyperledger/cas/ca-{{ $org.Name | lower }}
         - name: CA_ADMIN_USER
-          value: admin
+          value: {{ $.Values.ca.userName }}
         - name: CA_ADMIN_PASS
-          value: adminpw
+          value: {{ $.Values.ca.password }}
         - name: CA_ADMIN_USER_PASS
-          value: admin:adminpw
+          value: {{ $.Values.ca.userName }}:{{ $.Values.ca.password }}
         - name: CA_HOST
           value: hlf-ca--{{ $org.Name | lower }}
         - name: ORG_ADMIN_NAME
@@ -747,9 +751,7 @@ spec:
         #  name: ca-tls
         - mountPath: /hlf-scripts
           name: hlf-scripts
-        #- mountPath: /hlf-data
-        #  name: hlf-data
-
+       
         - mountPath: /hlf-peer-org--{{ $org.Name | lower }}
           name: hlf-peer-org--{{ $org.Name | lower }}
 

@@ -75,42 +75,7 @@ spec:
 
       {{- end }} {{- /* peers */ -}}{{""}}
       {{- end }} {{- /* peer orgs */ -}}{{""}}
-      #- name: hlf-data
-      #  persistentVolumeClaim:
-      #    claimName: azurefile
-
-      #- name: peer-tls
-      #  secret:
-      #    secretName: hlf-peer--{{ $org.Name | lower }}--{{ $peer | lower }}-tls
-      #- name: peer-msp
-      #  secret:
-      #    secretName: hlf-peer--{{ $org.Name | lower }}--{{ $peer | lower }}-msp
-      #    items:
-      #    - key: cert.pem
-      #      path: signcerts/cert.pem
-      #    - key: key.pem
-      #      path: keystore/key.pem
-      #    - key: cacert.pem
-      #      path: cacerts/cert.pem
-      #    - key: tlscacert.pem
-      #      path: tlscacerts/cert.pem
-      #    - key: admincert.pem
-      #      path: admincerts/cert.pem
-      #- name: peer-admin-msp
-      #  secret:
-      #    secretName: hlf-peer--{{ $org.Name | lower }}--admin-msp
-      #    items:
-      #    - key: cert.pem
-      #      path: signcerts/cert.pem
-      #    - key: key.pem
-      #      path: keystore/key.pem
-      #    - key: cacert.pem
-      #      path: cacerts/cert.pem
-      #    - key: tlscacert.pem
-      #      path: tlscacerts/cert.pem
-      #    - key: admincert.pem
-      #      path: admincerts/cert.pem
-      # chaincodes
+      
       {{- range $i, $chaincode := $.Values.network.chaincodes }}    
       - name: chaincode-{{ $chaincode.name | lower }}
         configMap:
@@ -230,14 +195,6 @@ spec:
         - mountPath: /etc/hyperledger/fabric/admin-msp/
           name: hlf-peer-org--{{ $org.Name | lower }}
           subPath: msp 
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: peer-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: peer-msp
-        #- mountPath: /etc/hyperledger/fabric/admin-msp/
-        #  name: peer-admin-msp
-        # - mountPath: /hl_config/channel/
-        #   name: hlf-channels
         # chaincodes
         {{- range $i, $chaincode := $.Values.network.chaincodes }}    
         - mountPath: /chaincode/{{ $chaincode.name }}

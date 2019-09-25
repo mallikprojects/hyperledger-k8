@@ -32,10 +32,10 @@ spec:
       containers:
       - name: ca
         image: hyperledger/fabric-ca:{{ $.Values.hyperledgerVersion }}
-        command: ["sh", "-c", "fabric-ca-server start \
-            --ca.certfile /etc/hyperledger/fabric-ca-server-config/cert.pem \
-            --ca.keyfile /etc/hyperledger/fabric-ca-server-config/private_key \
-            -b {{ $.Values.ca.userName }}:{{ $.Values.ca.password }} -d"]
+        #command: ["sh", "-c", "fabric-ca-server start \
+        #    --ca.certfile /etc/hyperledger/fabric-ca-server-config/cert.pem \
+        #    --ca.keyfile /etc/hyperledger/fabric-ca-server-config/private_key \
+        #    -b {{ $.Values.ca.userName }}:{{ $.Values.ca.password }} -d"]
         command: ["sh", "-c", "/hlf-scripts/start-root-ca.sh "]
         volumeMounts:
         - mountPath: /etc/hyperledger/fabric-ca-server-config/
@@ -64,8 +64,6 @@ spec:
           value: /etc/hyperledger/fabric-ca-server-config/private_key
         - name: BOOTSTRAP_USER_PASS
           value: {{ $.Values.ca.userName }}:{{ $.Values.ca.password }}
-        #- name: TARGET_CERTFILE
-        #  value: /hlf-data/{{$org.Name|lower}}-ca-cert.pem
         - name: MY_CA_CERTFILE
           value: /etc/hyperledger/fabric-ca-server-config/cert.pem
         - name: MY_CA_KEYFILE

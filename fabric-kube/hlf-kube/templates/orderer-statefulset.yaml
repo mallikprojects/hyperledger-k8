@@ -58,28 +58,7 @@ spec:
       - name: channel-artifacts
         persistentVolumeClaim:
           claimName: channel-artifacts
-      #- name: hlf-data
-      #  persistentVolumeClaim:
-      #    claimName: azurefile
       
-      #- name: orderer-tls
-      #  secret:
-      #    secretName: hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}-tls
-      #- name: orderer-msp
-      #  secret:
-      #    secretName: hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}-msp
-      #    items:
-      #    - key: cert.pem
-      #      path: signcerts/cert.pem
-      #    - key: key.pem
-      #      path: keystore/key.pem
-      #    - key: cacert.pem
-      #      path: cacerts/cert.pem
-      #    - key: admincert.pem
-      #      path: admincerts/cert.pem
-      #- name: genesis
-      #  secret:
-      #    secretName: hlf-genesis.block
 
       {{- if $.Values.hostAliases }}
       hostAliases:
@@ -176,12 +155,7 @@ spec:
           name: channel-artifacts
           #subPath: channel-artifacts 
         
-        #- mountPath: /var/hyperledger/orderer/tls/
-        #  name: orderer-tls
-        #- mountPath: /var/hyperledger/orderer/msp/
-        #  name: orderer-msp
-        #- mountPath: /var/hyperledger/orderer/
-        #  name: genesis
+       
         
         env:
         # TODO move configurable ones to configmaps

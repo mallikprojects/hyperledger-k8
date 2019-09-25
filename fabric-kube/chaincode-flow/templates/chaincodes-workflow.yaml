@@ -52,42 +52,7 @@ spec:
   {{- end }} {{- /* peers */ -}}{{""}}
   {{- end }} {{- /* peer orgs */ -}}{{""}}
 
-  #- name: hlf-data
-  #  persistentVolumeClaim:
-  #    claimName: azurefile
-
-#   - name: orderer-tlsca
-#     secret:
-#       # only use the first orderer
-#       secretName: hlf-orderer--{{ $ordererOrg.Name | lower }}-tlsca
-
-# {{- range $i, $org := .Values.PeerOrgs }}
-
-#   - name: peer-{{ $org.Name | lower }}-admin-msp
-#     secret:
-#       secretName: hlf-peer--{{ $org.Name | lower }}--admin-msp
-#       items:
-#       - key: cert.pem
-#         path: signcerts/cert.pem
-#       - key: key.pem
-#         path: keystore/key.pem
-#       - key: cacert.pem
-#         path: cacerts/cert.pem
-#       - key: tlscacert.pem
-#         path: tlscacerts/cert.pem
-#       - key: admincert.pem
-#         path: admincerts/cert.pem
-
-# {{- range $peerIndex := until ($org.Template.Count | int) }}
-# {{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
-
-#   - name: peer-{{ $org.Name | lower }}-{{ $peer | lower }}-tls
-#     secret:
-#       secretName: hlf-peer--{{ $org.Name | lower }}--{{ $peer | lower }}-tls
-      
-# {{- end }} {{- /* Peers */ -}}
-# {{- end }} {{- /* Orgs */ -}}{{""}}
-
+ 
   # chaincodes configMaps
   {{- range $i, $chaincode := $.Values.network.chaincodes }}    
   {{- if or (not $.Values.flow.chaincode.include) (has $chaincode.name $.Values.flow.chaincode.include) }}
@@ -284,10 +249,6 @@ spec:
           name: hlf-peer-org--{{ $org.Name | lower }}
           subPath: admin/msp
 
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: peer-{{ $org.Name | lower }}-{{ $peer | lower }}-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: peer-{{ $org.Name | lower }}-admin-msp
         - mountPath: /hlf_config/chaincode/
           name: chaincode-{{ $chaincode.name | lower }}
       
@@ -404,12 +365,6 @@ spec:
           name: hlf-peer-org--{{ $org.Name | lower }}
           subPath: admin/msp
 
-        #- mountPath: /hlf_config/orderer-tlsca
-        #  name: orderer-tlsca
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: peer-{{ $org.Name | lower }}-{{ $peer | lower }}-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: peer-{{ $org.Name | lower }}-admin-msp
       
       env:
         - name: CORE_PEER_ADDRESS
@@ -484,12 +439,6 @@ spec:
           name: hlf-peer-org--{{ $org.Name | lower }}
           subPath: admin/msp
 
-        #- mountPath: /hlf_config/orderer-tlsca
-        #  name: orderer-tlsca
-        #- mountPath: /etc/hyperledger/fabric/tls/
-        #  name: peer-{{ $org.Name | lower }}-{{ $peer | lower }}-tls
-        #- mountPath: /etc/hyperledger/fabric/msp/
-        #  name: peer-{{ $org.Name | lower }}-admin-msp
       
       env:
         - name: CORE_PEER_ADDRESS

@@ -1,11 +1,11 @@
-# Default values for hlf-kube.
+# Default values for artifacts-workflow.
 # This is a YAML-formatted file.
 # Declare variables to be passed into your templates.
 
 # number of times to retry a failed leaf task
 retryCount: 4
 
-hyperledgerVersion: 1.4.1
+hyperledgerVersion: 1.4.3
 
 # see the Raft sample in the README for how to enable TLS
 tlsEnabled: false
@@ -13,13 +13,6 @@ tlsEnabled: false
 # use actual domain names like peer0.atlantis.com instead of internal service names
 # this should be set to true for TLS
 useActualDomains: false
-
-# adds additional DNS entries to /etc/hosts files
-# see https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/#adding-additional-entries-with-hostaliases
-# this value should be provided if either tlsEnabled or useActualDomains is set to true
-# see the Raft sample in the README for how to use this
-hostAliases: []
-hyperledgerVersion: 1.4.3
 logLevel: info
 adminCerts: true
 ca:
@@ -31,18 +24,11 @@ ca:
 
 flow:
   orderer:
-    # should we run top level channel flows in parallel? 
-    # dont set to true if you are using Kafka orderer (as of HL 1.4.0)
+    # run orderer  certificate generation in parallel
     parallel: false
-    # fill in this array with channel names to limit the channel flow only to these ones
-  
   peerorgs:
-    # should we run top level channel flows in parallel? 
-    # dont set to true if you are using Kafka orderer (as of HL 1.4.0)
+    # run peer org  certificate generation in parallel
     parallel: false
-    # fill in this array with channel names to limit the channel flow only to these ones
     
-  artifacts: 
-    # run channel join flows in parallel? 
-    parallel: true
+    
   
