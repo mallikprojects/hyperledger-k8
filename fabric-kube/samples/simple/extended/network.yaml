@@ -12,12 +12,12 @@ network:
     - name: private-arete
       # all peers in these organizations will join the channel
       orgs: [AreteCorporate]
-    - name: private-abc
+    #- name: private-abc
       # all peers in these organizations will join the channel
-      orgs: [AreteCorporate, ABCVendor]
-    - name: private-def
+    #  orgs: [AreteCorporate, ABCVendor]
+    #- name: private-def
       # all peers in these organizations will join the channel
-      orgs: [AreteCorporate, DEFVendor]
+    #  orgs: [AreteCorporate, DEFVendor]
 
   # defines which chaincodes will be installed to which organizations
   chaincodes:
