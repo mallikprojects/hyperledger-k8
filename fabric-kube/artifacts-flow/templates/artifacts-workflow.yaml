@@ -550,6 +550,15 @@ spec:
         - mountPath: /hlf-orderer--{{ $org.Name | lower }}
           name: hlf-orderer--{{ $org.Name | lower }}
         {{- end }} {{- /* orderer orgs */ -}}{{""}}
+
+        {{- range $i, $org := $.Values.OrdererOrgs }}
+        {{- range $i, $host := $org.Specs }}
+        - mountPath: /hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}
+          name: hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}
+        {{- end }} {{- /* orderer hosts */ -}}{{""}}
+        {{- end }} {{- /* orderer orgs */ -}}{{""}}
+
+        
         {{- range $i, $org := $.Values.PeerOrgs }}
         - mountPath: /hlf-peer-org--{{ $org.Name | lower }}
           name: hlf-peer-org--{{ $org.Name | lower }}

@@ -21,7 +21,7 @@ Organizations:
         ID: AreteOrdererMSP
 
         # MSPDir is the filesystem path which contains the MSP configuration
-        MSPDir: /hlf-data/orgs/areteorderer/msp
+        MSPDir: /hlf-orderer--areteorderer/msp
 
         # Policies defines the set of policies at this level of the config tree
         # For organization policies, their canonical path is usually
@@ -45,7 +45,7 @@ Organizations:
         # ID to load the MSP definition as
         ID: AreteCorporateMSP
 
-        MSPDir: /hlf-data/orgs/aretecorporate/msp
+        MSPDir: /hlf-peer-org--aretecorporate/msp
 
         # Policies defines the set of policies at this level of the config tree
         # For organization policies, their canonical path is usually
@@ -76,7 +76,7 @@ Organizations:
         # ID to load the MSP definition as
         ID: ABCVendorMSP
 
-        MSPDir: /hlf-data/orgs/abcvendor/msp
+        MSPDir: /hlf-peer-org--abcvendor/msp
 
         # Policies defines the set of policies at this level of the config tree
         # For organization policies, their canonical path is usually
