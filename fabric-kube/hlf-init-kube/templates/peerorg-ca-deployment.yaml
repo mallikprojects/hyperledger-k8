@@ -1,0 +1,88 @@
+{{- range $i, $org := .Values.PeerOrgs }}
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: hlf-ca--{{ $org.Name | lower }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: hlf-ca--{{ $org.Name | lower }}
+  template:
+    metadata:
+      labels:
+        app: hlf-ca--{{ $org.Name | lower }}
+    spec:
+          #volumeClaimTemplates:
+  #{{- if $.Values.orderer.persistence.enabled }}
+  - metadata:
+      name: hlf-ca--{{ $org.Name | lower }}
+    spec:
+      accessModes:
+        - ReadWriteOnce
+      storageClassName: {{ $.Values.persistence.storageClass }}
+      resources:
+        requests:
+          storage: {{ $.Values.orderer.persistence.size }}
+  #{{- end }}
+      volumes:
+      # name: ca-tls
+      #  secret:
+      #    secretName: hlf-ca--{{ $org.Name | lower }}-tls
+      - name: hlf-scripts
+        configMap:
+          name: hlf-scripts
+          defaultMode: 0777
+      #- name: hlf-data
+      #  hostPath:
+      #    path: hlf-data
+      - name: hlf-ca--{{ $org.Name | lower }}
+        persistentVolumeClaim:
+          claimName: hlf-ca--{{ $org.Name | lower }}
+      containers:
+      - name: ca
+        image: hyperledger/fabric-ca:{{ $.Values.hyperledgerVersion }}
+        #command: ["sh", "-c", "fabric-ca-server start \
+        #    --ca.certfile /etc/hyperledger/fabric-ca-server-config/cert.pem \
+        #    --ca.keyfile /etc/hyperledger/fabric-ca-server-config/private_key \
+        #    -b {{ $.Values.ca.userName }}:{{ $.Values.ca.password }} -d"]
+        command: ["sh", "-c", "/hlf-scripts/start-root-ca.sh"]
+        volumeMounts:
+        #- mountPath: /etc/hyperledger/fabric-ca-server-config/
+        #  name: ca-tls
+        - mountPath: /etc/hyperledger/fabric-ca-server-config/
+          name: hlf-ca--{{ $org.Name | lower }}
+          #subPath: ca/{{$org.Name|lower}}
+
+
+        - mountPath: /hlf-scripts
+          name: hlf-scripts
+        #- mountPath: /hlf-data
+        #  name: hlf-data
+        
+
+        env:
+        # TODO move configurable ones to configmaps
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.ca.logLevel }}
+        - name: FABRIC_CA_HOME
+          value: /etc/hyperledger/fabric-ca-server
+        - name: FABRIC_CA_SERVER_CA_NAME
+          value: ca-{{ $org.Name }}
+        - name: FABRIC_CA_SERVER_TLS_ENABLED
+          value: "false" # it's always false as we use Ingress for TLS termination. # {{ $.Values.tlsEnabled | quote }}
+        - name: FABRIC_CA_SERVER_TLS_CERTFILE
+          value: /etc/hyperledger/fabric-ca-server-config/cert.pem
+        #- name: FABRIC_CA_SERVER_TLS_KEYFILE
+        #  value: /etc/hyperledger/fabric-ca-server-config/private_key
+        - name: BOOTSTRAP_USER_PASS
+          value: {{ $.Values.ca.userName }}:{{ $.Values.ca.password }}
+        - name: TARGET_CERTFILE
+          value: /hlf-data/{{$org.Name|lower}}-ca-cert.pem
+        - name: MY_CA_CERTFILE
+          value: /etc/hyperledger/fabric-ca-server-config/cert.pem
+        - name: MY_CA_KEYFILE
+          value: /etc/hyperledger/fabric-ca-server-config/private_key
+---
+{{- end }} {{- /* Orgs */ -}}

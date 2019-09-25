@@ -1,0 +1,33 @@
+{{- if .Values.couchdb.ingress.enabled -}}
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: hlf-couchdb--ingress
+  annotations:
+    {{- range $key, $value := .Values.ingress.annotations }}
+      {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  rules:
+{{- range $i, $org := .Values.PeerOrgs }}
+{{- range $peerIndex := until ($org.Template.Count | int) }}
+{{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
+  - host: hlf-couchdb-{{ $org.Name | lower }}-{{ $peer | lower }}.{{ $.Values.ingress.parentDomain }}
+    http:
+      paths:
+      - path: /
+        backend: 
+          serviceName: hlf-couchdb--{{ $org.Name | lower }}--{{ $peer | lower }}
+          servicePort: 5984
+{{- end }} {{- /* Peers */ -}}
+{{- end }} {{- /* Orgs */ -}}{{""}}
+  tls:
+  - hosts:
+{{- range $i, $org := .Values.PeerOrgs }}
+{{- range $peerIndex := until ($org.Template.Count | int) }}
+{{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
+    - hlf-couchdb-{{ $org.Name | lower }}-{{ $peer | lower }}.{{ $.Values.ingress.parentDomain }}
+{{- end }} {{- /* Peers */ -}}
+{{- end }} {{- /* Orgs */ -}}{{""}}
+    secretName: hlf-couchdb--ingress-tls
+{{- end }} {{- /* if ingress.enabled */ -}}

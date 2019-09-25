@@ -1,0 +1,38 @@
+# Default values for hlf-kube.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# number of times to retry a failed leaf task
+retryCount: 4
+
+backup:
+  # required. the key pointing to backup
+  key: 
+  target: 
+    # only azureBlobStorage for now, feel free to implement S3
+    type: azureBlobStorage
+    azureBlobStorage: 
+      # storage account name
+      accountName: 
+      # container name in storage account
+      source: hlf-backup 
+      # credentials
+      accessKey: 
+
+flow:
+  peer:
+    restore: 
+      # restore peers data from backup?
+      enabled: true
+  couchdb:
+    restore: 
+      # restore CouchDB's data from backup?
+      enabled: true
+  orderer:
+    replicas: 1
+    restore: 
+      # restore orderers data from backup?
+      enabled: true
+      
+
+

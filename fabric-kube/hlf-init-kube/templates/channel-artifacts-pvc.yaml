@@ -1,0 +1,17 @@
+{{ if eq .Values.vault.type "pvc" }}
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: channel-artifacts
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ $.Values.vault.pvc.storageClass }}
+  resources:
+    requests:
+      storage: {{ $.Values.vault.pvc.size }}
+
+---
+{{- end }} {{- /* pvc */ -}}
+

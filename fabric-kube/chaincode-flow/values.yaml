@@ -1,0 +1,49 @@
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+# number of times to retry a failed leaf task
+# especially on high end machines install step frequently fails, that's why this number is high
+# see https://jira.hyperledger.org/browse/FAB-15026
+retryCount: 20
+
+hyperledgerVersion: 1.4.3
+
+# see the Raft sample in the README for how to enable TLS
+tlsEnabled: false
+
+# use actual domain names like peer0.atlantis.com instead of internal service names
+# this should be set to true for TLS
+useActualDomains: false
+
+# adds additional DNS entries to /etc/hosts files
+# see https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/#adding-additional-entries-with-hostaliases
+# this value should be provided if either tlsEnabled or useActualDomains is set to true
+# see the Raft sample in the README for how to use this
+hostAliases: []
+
+logLevel: debug
+
+flow:
+  chaincode:
+    # should we run top level chaincode flows in parallel?
+    parallel: false
+    # fill in this array with chaincode names to limit the chaincode flows only to these ones
+    include: []
+  install:
+    # should we run install step?
+    enabled: true  
+    parallel: true
+  instantiate:
+    # should we run instantiate/upgrade step?
+    enabled: true  
+    parallel: true
+  invoke:
+    # should we run invoke step? 
+    # we invoke chaincode after instantiate/upgrade to force the peers to actually create the chaincode containers
+    enabled: true 
+    parallel: true
+    function: '{"function":"ping","Args":[""]}'
+
+chaincode:
+  version: "1.0"
+  language: node

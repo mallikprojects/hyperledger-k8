@@ -1,0 +1,39 @@
+{{ if .Values.backup.enabled }}
+
+HL Fabric network is now prepared for backup!
+
+Wait for all pods are up and running then run the backup Argo flow!
+After that is completed, make another Helm upgrade to return back to normal operation.
+
+{{- if (index .Values "hlf-kafka").enabled }}
+
+IMPORTANT: Looks like you are using Kafka Orderer. 
+In this case you also need to manually backup Kafka cluster!
+
+{{- end}}
+
+{{ else if .Values.restore.enabled }}
+
+HL Fabric network is now prepared for restore!
+
+Wait for all pods are up and running then run the restore Argo flow!
+After that is completed, make another Helm upgrade to return back to normal operation.
+
+{{- if (index .Values "hlf-kafka").enabled }}
+
+IMPORTANT: Looks like you are using Kafka Orderer. 
+In this case you also need to manually restore Kafka cluster!
+
+{{- end}}
+
+{{ else }}
+
+Happy BlockChaining :)
+
+And don't forget the first rule of BlockChain club:
+
+"Do not use BlockChain unless absolutely necessary!"
+
+                                            r a f t
+
+{{- end }}                                            

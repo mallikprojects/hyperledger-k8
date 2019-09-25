@@ -1,0 +1,5 @@
+orderer:
+  replicas: 3
+
+hlf-kafka:
+  enabled: true

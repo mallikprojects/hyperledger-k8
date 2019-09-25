@@ -1,0 +1,21 @@
+{{ if eq .Values.vault.type "pvc" }}
+{{- range $i, $org := .Values.OrdererOrgs }}
+{{- range $i, $host := $org.Specs }}
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ $.Values.vault.pvc.storageClass }}
+  resources:
+    requests:
+      storage: {{ $.Values.vault.pvc.size }}
+
+---
+{{- end }} {{- /* hosts */ -}}
+{{- end }} {{- /* Orderers */ -}}
+{{- end }} {{- /* pvc */ -}}
+

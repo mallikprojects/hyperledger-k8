@@ -1,0 +1,21 @@
+{{- range $i, $org := .Values.PeerOrgs }}
+{{- range $peerIndex := until ($org.Template.Count | int) }}
+{{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: hlf-couchdb--{{ $org.Name | lower }}--{{ $peer | lower }}
+  labels:
+    name: hlf-couchdb--{{ $org.Name | lower }}--{{ $peer | lower }}
+spec:
+  type: ClusterIP
+  selector:
+    app: hlf-peer--{{ $org.Name | lower }}--{{ $peer | lower }}
+  ports:
+  - protocol: TCP
+    port: 5984
+    name: couchdb
+---
+{{- end }} {{- /* Peers */ -}}
+{{- end }} {{- /* Orgs */ -}}

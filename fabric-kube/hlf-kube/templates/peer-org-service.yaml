@@ -1,0 +1,22 @@
+{{- range $i, $org := .Values.PeerOrgs }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: hlf-org-peer--{{ $org.Name | lower }}
+  labels:
+    name: hlf-org-peer--{{ $org.Name | lower }}
+spec:
+  type: ClusterIP
+  selector:
+    name: hlf-peer
+    org: hlf-peer--{{ $org.Name | lower }}
+  ports:
+  - protocol: TCP
+    port: 7051
+    name: grpc
+  - protocol: TCP
+    port: 7052
+    name: chaincode
+---
+{{- end }} {{- /* Orgs */ -}}

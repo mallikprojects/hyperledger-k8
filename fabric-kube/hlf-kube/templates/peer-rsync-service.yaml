@@ -1,0 +1,24 @@
+{{- if or .Values.backup.enabled .Values.restore.enabled }}
+{{- range $i, $org := .Values.PeerOrgs }}
+{{- range $peerIndex := until ($org.Template.Count | int) }}
+{{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: hlf-peer-rsync--{{ $org.Name | lower }}--{{ $peer | lower }}
+  labels:
+    name: hlf-peer-rsync--{{ $org.Name | lower }}--{{ $peer | lower }}
+spec:
+  type: ClusterIP
+  selector:
+    name: hlf-peer
+    app: hlf-peer--{{ $org.Name | lower }}--{{ $peer | lower }}
+  ports:
+  - protocol: TCP
+    port: 873
+    name: rsync
+---
+{{- end }} {{- /* Peers */ -}}
+{{- end }} {{- /* Orgs */ -}}
+{{- end }} {{- /* if backup/restore enabled */ -}}

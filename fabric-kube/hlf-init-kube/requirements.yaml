@@ -1,0 +1,6 @@
+dependencies:
+  - name: kafka
+    alias: hlf-kafka
+    repository: http://storage.googleapis.com/kubernetes-charts-incubator
+    version: 0.14.5
+    condition: hlf-kafka.enabled

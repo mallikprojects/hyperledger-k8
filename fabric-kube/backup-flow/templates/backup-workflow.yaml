@@ -1,0 +1,235 @@
+{{- $backupKey := (not .Values.backup.key) | ternary (now | htmlDate) .Values.backup.key }} 
+
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: hlf-backup-
+spec:
+  entrypoint: backup
+
+  templates:
+  - name: backup
+    steps:
+    - 
+# top level: peer/orderer
+    {{- if or $.Values.flow.peer.backup.enabled $.Values.flow.couchdb.backup.enabled }}
+      - name: backup-peers
+        template: backup-peers
+    {{- end }}
+    {{- if $.Values.flow.orderer.backup.enabled }}
+      - name: backup-orderers
+        template: backup-orderers
+    {{- end }}
+    
+# second level: peers
+{{- if or $.Values.flow.peer.backup.enabled $.Values.flow.couchdb.backup.enabled }}
+  - name: backup-peers
+    steps: 
+    - 
+{{- range $i, $org := .Values.PeerOrgs }}
+{{- range $peerIndex := until ($org.Template.Count | int) }}
+{{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
+
+      - name: backup-peer--{{ $org.Name | lower }}--{{ $peer | lower }}
+        template: backup-peer--{{ $org.Name | lower }}--{{ $peer | lower }}
+
+{{- end }} {{- /* Peers */ -}}
+{{- end }} {{- /* Orgs */ -}}
+{{- end }} {{- /* if peer/couchdb backup enabled */ -}} {{""}}
+
+# second level: orderers
+{{- if $.Values.flow.orderer.backup.enabled }}
+
+  - name: backup-orderers
+    steps: 
+    - 
+{{- range $i, $org := .Values.OrdererOrgs }}
+{{- range $i, $host := $org.Specs }}
+{{- range $orderer := until ($.Values.flow.orderer.replicas | int) }} 
+
+      - name: backup-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}--{{ $orderer }}
+        template: backup-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}--{{ $orderer }}
+
+{{- end }} {{- /* orderer */ -}}
+{{- end }} {{- /* org.Specs */ -}}
+{{- end }} {{- /* OrdererOrgs */ -}}
+{{- end }} {{- /* if orderer backup enabled */ -}} {{""}}
+
+
+# third level: peers get/backup data
+{{- if or $.Values.flow.peer.backup.enabled $.Values.flow.couchdb.backup.enabled }}
+{{- range $i, $org := .Values.PeerOrgs }}
+{{- range $peerIndex := until ($org.Template.Count | int) }}
+{{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
+
+  - name: backup-peer--{{ $org.Name | lower }}--{{ $peer | lower }}
+    steps:
+    - - name: get-peer-data--{{ $org.Name | lower }}--{{ $peer | lower }}
+        template: get-peer-data--{{ $org.Name | lower }}--{{ $peer | lower }}
+    - - name: backup-peer-data--{{ $org.Name | lower }}--{{ $peer | lower }}
+        template: backup-peer-data--{{ $org.Name | lower }}--{{ $peer | lower }}
+        arguments:
+          artifacts:
+          - name: peer-backup
+            from: "{{ "{{" }}steps.get-peer-data--{{ $org.Name | lower }}--{{ $peer | lower }}.outputs.artifacts.peer-backup{{ "}}" }}"
+
+{{- end }} {{- /* Peers */ -}}
+{{- end }} {{- /* Orgs */ -}}
+{{- end }} {{- /* if peer/couchdb backup enabled */ -}} {{""}}
+
+# third level: orderers get/backup data
+{{- if $.Values.flow.orderer.backup.enabled }}
+{{- range $i, $org := .Values.OrdererOrgs }}
+{{- range $i, $host := $org.Specs }}
+{{- range $orderer := until ($.Values.flow.orderer.replicas | int) }}
+
+  - name: backup-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}--{{ $orderer }}
+    steps:
+    - - name: get-orderer-data--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}--{{ $orderer }}
+        template: get-orderer-data--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}--{{ $orderer  }}
+    - - name: backup-orderer-data--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}--{{ $orderer  }}
+        template: backup-orderer-data--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}--{{ $orderer }}
+        arguments:
+          artifacts:
+          - name: orderer-backup
+            from: "{{ "{{" }}steps.get-orderer-data--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}--{{ $orderer }}.outputs.artifacts.orderer-backup{{ "}}" }}"
+
+{{- end }} {{- /* orderer */ -}}
+{{- end }} {{- /* org.Specs */ -}}
+{{- end }} {{- /* OrdererOrgs */ -}}
+{{- end }} {{- /* if orderer backup enabled */ -}} {{""}}
+
+# leaf get-peer-data templates
+{{- if or $.Values.flow.peer.backup.enabled $.Values.flow.couchdb.backup.enabled }}
+{{- range $i, $org := .Values.PeerOrgs }}
+{{- range $peerIndex := until ($org.Template.Count | int) }}
+{{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
+
+  - name: get-peer-data--{{ $org.Name | lower }}--{{ $peer | lower }}
+    # org: {{ $org.Name }}
+    # peer: {{ $peer }}
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+    container:
+      image: axiom/rsync-server:latest
+      command: ["sh", "-c", "mkdir /hlf-backup && \
+                             rsync -avz rsync://user@hlf-peer-rsync--{{ $org.Name | lower }}--{{ $peer | lower }}/volume /hlf-backup/"]
+      env:
+        - name: RSYNC_PASSWORD
+          value: pass
+    outputs:
+      artifacts:
+      - name: peer-backup
+        path: /hlf-backup/
+          
+
+{{- end }} {{- /* Peers */ -}}
+{{- end }} {{- /* Orgs */ -}}
+{{- end }} {{- /* if peer/couchdb backup enabled */ -}} {{""}}
+
+# leaf backup-peer-data templates
+{{- if or $.Values.flow.peer.backup.enabled $.Values.flow.couchdb.backup.enabled }}
+{{- range $i, $org := .Values.PeerOrgs }}
+{{- range $peerIndex := until ($org.Template.Count | int) }}
+{{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
+
+  - name: backup-peer-data--{{ $org.Name | lower }}--{{ $peer | lower }}
+    # org: {{ $org.Name }}
+    # peer: {{ $peer }}
+    # backupKey: {{ $backupKey }}
+    inputs:
+      artifacts:
+      - name: peer-backup
+        path: /hlf-backup/
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+
+    container:
+
+{{- if eq $.Values.backup.target.type "azureBlobStorage" }}    
+      image: microsoft/azure-cli:latest
+      command: ["sh", "-c", "az storage blob upload-batch \
+                             --source /hlf-backup/ \
+                             --destination-path {{ $backupKey }}/PeerOrgs/{{ $org.Name }}/{{ $peer }} \
+                             --account-name {{ required "backup.target.azureBlobStorage.accountName is required!" $.Values.backup.target.azureBlobStorage.accountName }} \ 
+                             --destination {{ required "backup.target.azureBlobStorage.destination is required!" $.Values.backup.target.azureBlobStorage.destination }} \
+                             "]
+      env:
+        - name: AZURE_STORAGE_KEY
+          value: {{ required "backup.target.azureBlobStorage.accessKey is required!" $.Values.backup.target.azureBlobStorage.accessKey }}
+{{- end }}
+
+{{- end }} {{- /* Peers */ -}}
+{{- end }} {{- /* Orgs */ -}}
+{{- end }} {{- /* if peer/couchdb backup enabled */ -}} {{""}}
+
+
+# leaf get-orderer-data templates
+{{- if $.Values.flow.orderer.backup.enabled }}
+{{- range $i, $org := .Values.OrdererOrgs }}
+{{- range $i, $host := $org.Specs }}
+{{- range $orderer := until ($.Values.flow.orderer.replicas | int) }}
+
+  - name: get-orderer-data--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}--{{ $orderer }}
+    # org: {{ $org.Name }}
+    # hostname: {{ $host.Hostname }}
+    # orderer: {{ $orderer }}
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+    container:
+      image: axiom/rsync-server:latest
+      command: ["sh", "-c", "mkdir /hlf-backup && \
+                             rsync -avz rsync://user@hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}-{{ $orderer }}.hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}/volume /hlf-backup/"]
+      env:
+        - name: RSYNC_PASSWORD
+          value: pass
+    outputs:
+      artifacts:
+      - name: orderer-backup
+        path: /hlf-backup/
+          
+
+{{- end }} {{- /* orderer */ -}}
+{{- end }} {{- /* org.Specs */ -}}
+{{- end }} {{- /* OrdererOrgs */ -}}
+{{- end }} {{- /* if orderer backup enabled */ -}} {{""}}
+
+# leaf backup-orderer-data templates
+{{- if $.Values.flow.orderer.backup.enabled }}
+{{- range $i, $org := .Values.OrdererOrgs }}
+{{- range $i, $host := $org.Specs }}
+{{- range $orderer := until ($.Values.flow.orderer.replicas | int) }}
+
+  - name: backup-orderer-data--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}--{{ $orderer }}
+    # org: {{ $org.Name }}
+    # hostname: {{ $host.Hostname }}
+    # orderer: {{ $orderer }}
+    # backupKey: {{ $backupKey }}
+    inputs:
+      artifacts:
+      - name: orderer-backup
+        path: /hlf-backup/
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+
+    container:
+
+{{- if eq $.Values.backup.target.type "azureBlobStorage" }}    
+      image: microsoft/azure-cli:latest
+      command: ["sh", "-c", "az storage blob upload-batch \
+                             --source /hlf-backup/ \
+                             --destination-path {{ $backupKey }}/OrdererOrgs/{{ $org.Name }}/{{ $host.Hostname }}/{{ $orderer }} \
+                             --account-name {{ required "backup.target.azureBlobStorage.accountName is required!" $.Values.backup.target.azureBlobStorage.accountName }} \ 
+                             --destination {{ required "backup.target.azureBlobStorage.destination is required!" $.Values.backup.target.azureBlobStorage.destination }} \
+                             "]
+      env:
+        - name: AZURE_STORAGE_KEY
+          value: {{ required "backup.target.azureBlobStorage.accessKey is required!" $.Values.backup.target.azureBlobStorage.accessKey }}
+{{- end }}
+
+{{- end }} {{- /* orderer */ -}}
+{{- end }} {{- /* org.Specs */ -}}
+{{- end }} {{- /* OrdererOrgs */ -}}
+{{- end }} {{- /* if orderer backup enabled */ -}} {{""}}
+---

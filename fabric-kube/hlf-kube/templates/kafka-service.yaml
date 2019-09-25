@@ -1,0 +1,19 @@
+{{- if (index .Values "hlf-kafka").enabled }}
+# Kafka service name is release name dependent
+# we specify our service to make configtx.yaml release name independent
+apiVersion: v1
+kind: Service
+metadata:
+  name: hlf-kafka-service
+  labels:
+    name: hlf-kafka-service
+spec:
+  type: ClusterIP
+  ports:
+  - name: broker
+    port: 9092
+    protocol: TCP
+    targetPort: kafka
+  selector:
+    app: hlf-kafka
+{{- end }} {{- /* hlf-kafka.enabled */ -}}

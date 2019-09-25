@@ -1,0 +1,25 @@
+{{- if or .Values.backup.enabled .Values.restore.enabled }}
+{{- $vars:= dict "ordererIndex" 0 }}
+{{- range $i, $org := .Values.OrdererOrgs }}
+{{- range $i, $host := $org.Specs }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: hlf-orderer-rsync--{{ $org.Name | lower }}-{{ $vars.ordererIndex }}
+  labels:
+    name: hlf-orderer-rsync--{{ $org.Name | lower }}-{{ $vars.ordererIndex }}
+spec:
+  type: ClusterIP
+  clusterIP: None # Headless service for StatefulSet, required to access each pod invividually
+  selector:
+    app: hlf-orderer--{{ $org.Name | lower }}-{{ $vars.ordererIndex }}
+  ports:
+  - protocol: TCP
+    port: 873
+    name: rsync
+---
+{{- $_ := set $vars "ordererIndex" (add1 $vars.ordererIndex) }}
+{{- end }} {{- /* org.Specs */ -}}
+{{- end }} {{- /* OrdererOrgs */ -}}
+{{- end }} {{- /* if backup/restore enabled */ -}}

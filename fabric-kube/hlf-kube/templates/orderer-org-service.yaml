@@ -1,0 +1,19 @@
+{{- range $i, $org := .Values.OrdererOrgs }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: hlf-orderer--{{ $org.Name | lower }}
+  labels:
+    name: hlf-orderer--{{ $org.Name | lower }}
+spec:
+  type: ClusterIP
+  selector:
+    name: hlf-orderer
+    org: hlf-orderer--{{ $org.Name | lower }}
+  ports:
+  - protocol: TCP
+    port: 7050
+    name: grpc
+---
+{{- end }} {{- /* OrdererOrgs */ -}}

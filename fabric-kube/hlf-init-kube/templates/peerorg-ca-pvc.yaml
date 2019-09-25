@@ -1,0 +1,17 @@
+{{ if eq .Values.vault.type "pvc" }}
+{{- range $i, $org := .Values.PeerOrgs }}
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hlf-ca--{{ $org.Name | lower }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ $.Values.vault.pvc.storageClass }}
+  resources:
+    requests:
+      storage: {{ $.Values.vault.pvc.size }}
+---
+{{- end }} {{- /* Peer Orgs */ -}}
+{{- end }}

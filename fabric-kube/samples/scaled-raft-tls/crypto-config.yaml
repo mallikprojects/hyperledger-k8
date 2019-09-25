@@ -1,0 +1,38 @@
+# ---------------------------------------------------------------------------
+# "OrdererOrgs" - Definition of organizations managing orderer nodes
+# ---------------------------------------------------------------------------
+OrdererOrgs:
+  # ---------------------------------------------------------------------------
+  # Orderer
+  # ---------------------------------------------------------------------------
+  - Name: AreteOrderer 
+    Domain: arete.com
+    Specs:
+      - Hostname: orderer0
+      - Hostname: orderer1
+
+  - Name: ABCOrderer 
+    Domain: abc.com
+    Specs:
+      - Hostname: orderer0
+# ---------------------------------------------------------------------------
+# "PeerOrgs" - Definition of organizations managing peer nodes
+# ---------------------------------------------------------------------------
+PeerOrgs:
+  - Name: AreteCorporate
+    Domain: corporate.arete.com
+    EnableNodeOUs: true
+    Template:
+      Count: 2 
+    Users:
+      Count: 1
+  
+  - Name: ABCVendor 
+    Domain: vendor.abc.com
+    EnableNodeOUs: true
+    Template:
+      Count: 1
+    Users:
+      Count: 1
+
+  

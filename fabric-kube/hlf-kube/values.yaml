@@ -1,0 +1,139 @@
+# Default values for hlf-kube.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+hyperledgerVersion: 1.4.3
+
+# see the Raft sample in the README for how to enable TLS
+tlsEnabled: false
+
+# use actual domain names like peer0.atlantis.com instead of internal service names
+# this should be set to true for TLS
+useActualDomains: false
+
+# adds additional DNS entries to /etc/hosts files
+# see https://kubernetes.io/docs/concepts/services-networking/add-entries-to-pod-etc-hosts-with-host-aliases/#adding-additional-entries-with-hostaliases
+# this value should be provided if either tlsEnabled or useActualDomains is set to true
+# see the Raft sample in the README for how to use this
+hostAliases: []
+
+# common persistence settings
+persistence:
+  storageClass: default
+
+backup:
+  # initiate backup procedure?
+  enabled: false
+restore:
+  # initiate restore procedure?
+  enabled: false
+
+# common ingress settings
+ingress:
+  # all ingress subdomains will be created under this domain
+  parentDomain:
+  annotations:
+    kubernetes.io/ssl-redirect: "true"
+    certmanager.k8s.io/cluster-issuer: letsencrypt-prod
+
+# peer settings. applies to all peers
+peer:
+  logLevel: debug 
+  # launch peer pods? setting to false is useful for collecting host aliases and fast restart afterwards
+  launchPods: true
+  chaincode:
+    logging:
+      level:  info
+      shim:   info
+  persistence:
+    enabled: false
+    size: 16Gi
+  backup: 
+    # take backup of peers during backup procedure?
+    enabled: true
+  restore: 
+    # restore peers data from backup during restore procedure?
+    enabled: true
+  operations:
+    enabled: false
+    metrics:
+      provider: prometheus
+    
+# CouchDB settings. applies to all CouchDB's
+couchdb:
+  version: 0.4.15
+  userName: 
+  password:
+  persistence:
+    enabled: false
+    size: 16Gi
+  ingress:
+    enabled: false
+  backup: 
+    # take backup of CouchDB's during backup procedure?
+    enabled: true
+  restore: 
+    # restore CouchDB's data from backup during restore procedure?
+    enabled: true
+
+# Orderer settings. applies to all Orderer pods
+orderer:
+  # should be greater than 1 only if kafka orderer is used
+  replicas: 1
+  logLevel: info
+  # launch orderer pods? setting to false is useful for collecting host aliases and fast restart afterwards
+  launchPods: true
+  persistence:
+    enabled: false
+    size: 16Gi
+  backup: 
+    # take backup of orderers during backup procedure?
+    enabled: true
+  restore: 
+    # restore orderers data from backup during restore procedure?
+    enabled: true
+
+# CA (Certificate Authority) settings. applies to all CA's
+ca:
+  userName: admin
+  password: adminpw
+  logLevel: info
+  ingress:
+    enabled: false
+
+# kafka settings
+hlf-kafka:
+  # install kafka?
+  enabled: false
+
+  # number of Kafka brokers, should be at least 4
+  # https://hyperledger-fabric.readthedocs.io/en/release-1.4/kafka.html
+  replicas: 4
+  podManagementPolicy: Parallel
+
+  # TODO storage classs?
+  persistence:
+    enabled: false
+    storageClass: default
+    size: 16Gi
+
+  configurationOverrides: 
+    "default.replication.factor": 4  # given a 4 node Kafka cluster
+    "unclean.leader.election.enable": false
+    "min.insync.replicas": 3  # to permit one Kafka replica to go offline
+    "message.max.bytes": "103809024"  # 99 * 1024 * 1024 B
+    "replica.fetch.max.bytes": "103809024"  # 99 * 1024 * 1024 B
+    "log.retention.ms": -1  # Since we need to keep logs indefinitely for the HL Fabric Orderer
+
+  zookeeper:
+    # should be 3, 5, or 7
+    replicaCount: 3
+
+    persistence:
+      enabled: false
+      storageClass: default
+      size: 16Gi
+    
+    
+      
+

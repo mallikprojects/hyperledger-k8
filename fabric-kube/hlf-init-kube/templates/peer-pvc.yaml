@@ -1,0 +1,23 @@
+{{ if eq .Values.vault.type "pvc" }}
+{{- range $i, $org := .Values.PeerOrgs }}
+{{- range $peerIndex := until ($org.Template.Count | int) }}
+{{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
+
+
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: hlf-peer--{{ $org.Name | lower }}--{{ $peer | lower }}
+spec:
+  accessModes:
+    - ReadWriteMany
+  storageClassName: {{ $.Values.vault.pvc.storageClass }}
+  resources:
+    requests:
+      storage: {{ $.Values.vault.pvc.size }}
+
+---
+{{- end }} {{- /* Peers */ -}}
+{{- end }} {{- /* Peer Orgs */ -}}
+{{- end }} {{- /* pvc */ -}}
+

@@ -1,0 +1,1122 @@
+{{- $ordererOrg := index .Values.OrdererOrgs 0 }}
+{{- $ordererAddress := .Values.useActualDomains | ternary (printf "%s.%s" (index $ordererOrg.Specs 0).Hostname $ordererOrg.Domain) (printf "hlf-orderer--%s--%s" ($ordererOrg.Name | lower) ((index $ordererOrg.Specs 0).Hostname | lower)) }} 
+{{- $genesisProfile := index .Values.Profiles .Values.network.genesisProfile }}
+{{- $consortiums := $genesisProfile.Consortiums | keys }}
+{{- $vars:= dict}}
+# useActualDomains: {{ $.Values.useActualDomains }}
+# ordererAddress: {{ $ordererAddress }}
+# consortiums: {{ $consortiums }} 
+
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: hlf-peer-orgs-
+spec:
+  entrypoint: peer-orgs
+
+  # additional entries going into /etc/hosts file
+  {{- if $.Values.hostAliases }}
+  hostAliases:
+  {{- range $i, $alias := $.Values.hostAliases }}
+  - ip: {{ $alias.ip }}
+    hostnames: {{ $alias.hostnames }}
+  {{- end }}
+  {{- end }}{{""}}
+
+  volumes:
+
+   {{- range $i, $org := .Values.OrdererOrgs }}
+  - name: hlf-orderer--{{ $org.Name | lower }}
+    persistentVolumeClaim:
+      claimName: hlf-orderer--{{ $org.Name | lower }}
+
+  {{- range $i, $host := $org.Specs }}
+
+  - name: hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}
+    persistentVolumeClaim:
+      claimName: hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}
+
+  {{- end }} {{- /* orderer hosts */ -}}{{""}}
+  
+  {{- end }} {{- /* orderer orgs */ -}}{{""}}
+
+  {{- range $i, $org := .Values.PeerOrgs }}
+  - name: hlf-peer-org--{{ $org.Name | lower }}
+    persistentVolumeClaim:
+      claimName: hlf-peer-org--{{ $org.Name | lower }}
+  {{- range $peerIndex := until ($org.Template.Count | int) }}
+  {{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
+
+  - name: hlf-peer--{{ $org.Name | lower }}--{{ $peer | lower }}
+    persistentVolumeClaim:
+      claimName: hlf-peer--{{ $org.Name | lower }}--{{ $peer | lower }}
+
+  {{- end }} {{- /* peers */ -}}{{""}}
+  {{- end }} {{- /* peer orgs */ -}}{{""}}
+
+  #- name: hlf-data
+  #  persistentVolumeClaim:
+  #    claimName: azurefile
+  - name: hlf-scripts
+    configMap:
+      name: hlf-scripts
+      defaultMode: 0777 # make scripts executable
+  - name: hlf-configtx
+    secret:
+      secretName: hlf-configtx.yaml
+#   - name: orderer-tlsca
+#     secret:
+#       # only use the first orderer
+#       secretName: hlf-orderer--{{ $ordererOrg.Name | lower }}-tlsca
+
+# {{- range $i, $org := .Values.PeerOrgs }}
+#   - name: org-{{ $org.Name | lower }}-msp
+#     secret:
+#       secretName: hlf-peer--{{ $org.Name | lower }}--msp
+#       items:
+#       - key: config.yaml
+#         path: config.yaml
+#       - key: admincert.pem
+#         path: admincerts/Admin@{{ $org.Domain}}-cert.pem
+#       - key: cacert.pem
+#         path: cacerts/ca.{{ $org.Domain}}-cert.pem
+#       - key: tlscacert.pem
+#         path: tlscacerts/tlsca.{{ $org.Domain}}-cert.pem
+# {{- end }} {{- /* PeerOrgs */ -}}{{""}}
+
+# {{- range $i, $org := .Values.OrdererOrgs }}
+#   - name: orderer-{{ $org.Name | lower }}-admin-msp
+#     secret:
+#       secretName: hlf-orderer--{{ $org.Name | lower }}--admin-msp
+#       items:
+#       - key: cert.pem
+#         path: signcerts/cert.pem
+#       - key: key.pem
+#         path: keystore/key.pem
+#       - key: cacert.pem
+#         path: cacerts/cert.pem
+#       - key: tlscacert.pem
+#         path: tlscacerts/cert.pem
+#       - key: admincert.pem
+#         path: admincerts/cert.pem
+
+# {{- range $i, $host := $org.Specs }}
+#   - name: orderer-{{ $org.Name | lower }}-{{ $host.Hostname | lower }}-tls
+#     secret:
+#       secretName: hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}-tls
+# {{ end }} {{- /* org.Specs */ -}}
+# {{ end }} {{- /* OrdererOrgs */ -}} {{ "" }}
+
+
+# {{- range $i, $org := .Values.PeerOrgs }}
+#   - name: peer-{{ $org.Name | lower }}-admin-msp
+#     secret:
+#       secretName: hlf-peer--{{ $org.Name | lower }}--admin-msp
+#       items:
+#       - key: cert.pem
+#         path: signcerts/cert.pem
+#       - key: key.pem
+#         path: keystore/key.pem
+#       - key: cacert.pem
+#         path: cacerts/cert.pem
+#       - key: tlscacert.pem
+#         path: tlscacerts/cert.pem
+#       - key: admincert.pem
+#         path: admincerts/cert.pem
+
+# {{- range $peerIndex := until ($org.Template.Count | int) }}
+# {{- $peer := (printf "peer%s" ($peerIndex | toString)) }}
+#   - name: peer-{{ $org.Name | lower }}-{{ $peer | lower }}-tls
+#     secret:
+#       secretName: hlf-peer--{{ $org.Name | lower }}--{{ $peer | lower }}-tls
+# {{ end }} {{- /* Peers */ -}}
+# {{ end }} {{- /* PeerOrgs */ -}} {{ "" }}
+
+
+  templates:
+# entry point
+  - name: peer-orgs
+    steps:
+# top level consortiums and channels
+{{- if $.Values.flow.consortium.enabled }}
+    - - name: consortiums
+        template: consortiums
+{{- end }} {{- /* if consortium.enabled */ -}}{{""}}
+{{- if $.Values.flow.channel.enabled }}
+    - - name: channels
+        template: channels
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+
+# second level: consortiums
+{{- if $.Values.flow.consortium.enabled }}
+  - name: consortiums
+    steps:
+{{- range $i, $consortium := $consortiums }}
+{{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
+    - - name: {{ $consortium }}
+        template: consortium--{{ $consortium }}
+{{- end }} {{- /* if consortium included */ -}}
+{{- end }} {{- /* consortiums */ -}}
+{{- end }} {{- /* if consortium.enabled */ -}}{{""}}
+
+# second level: channels
+{{- if $.Values.flow.channel.enabled }}
+  - name: channels
+    steps:
+{{- $_ := set $vars "firstStep" true }}
+{{- range $i, $channel := $.Values.network.channels }}
+{{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
+{{- if or $vars.firstStep (not $.Values.flow.channel.parallel) }}
+    - 
+{{- end }}
+      - name: {{ $channel.name }}
+        template: channel--{{ $channel.name }}
+{{- $_ := set $vars "firstStep" false }}        
+{{- end }} {{- /* if channel included */ -}}
+{{- end }} {{- /* channels */ -}}
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+
+# third level: consortium templates
+{{- if $.Values.flow.consortium.enabled }}
+{{- range $i, $consortium := $consortiums }}
+{{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
+  - name: consortium--{{ $consortium }}
+    steps:
+{{- range $i, $org := (index $genesisProfile.Consortiums $consortium).Organizations }}
+{{- $orgName := $org.Name | trimSuffix "MSP" }}
+    - - name: consortium-org--{{ $orgName }}
+        template: consortium-org--{{ $consortium }}--{{ $orgName }}
+{{- end }} {{- /* consortium.orgs */ -}}
+{{- end }} {{- /* if consortium included */ -}}
+{{- end }} {{- /* consortiums */ -}}
+{{- end }} {{- /* if consortium.enabled */ -}}{{""}}
+
+# third level: channel templates
+{{- if $.Values.flow.channel.enabled }}
+{{- range $i, $channel := $.Values.network.channels }}
+{{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
+  - name: channel--{{ $channel.name }}
+    steps:
+    - - name: check-channel-exists
+        template: check-channel-exists--{{ $channel.name }}
+    - - name: channel-orgs
+        template: channel-orgs--{{ $channel.name }}
+        when: "{{ "{{" }}steps.check-channel-exists.outputs.result{{ "}}" }}"
+{{- end }} {{- /* if channel included */ -}}
+{{- end }} {{- /* channels */ -}}
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+
+# fourth level: consortium-org templates
+{{- if $.Values.flow.consortium.enabled }}
+{{- range $i, $consortium := $consortiums }}
+{{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
+{{- range $i, $org := (index $genesisProfile.Consortiums $consortium).Organizations }}
+{{- $orgName := $org.Name | trimSuffix "MSP" }}
+  - name: consortium-org--{{ $consortium }}--{{ $orgName }}
+    steps:
+    - - name: check-org-in-consortium
+        template: check-org-in-consortium--{{ $consortium }}--{{ $orgName }}
+    - - name: add-org-to-consortium
+        template: add-org-to-consortium--{{ $consortium }}--{{ $orgName }}
+        when: "!{{ "{{" }}steps.check-org-in-consortium.outputs.result{{ "}}" }}"
+{{- end }} {{- /* consortium.orgs */ -}}
+{{- end }} {{- /* if consortium included */ -}}
+{{- end }} {{- /* consortiums */ -}}
+{{- end }} {{- /* if consortium.enabled */ -}}{{""}}
+
+# fourth level: channel-orgs
+{{- if $.Values.flow.channel.enabled }}
+{{- range $i, $channel := $.Values.network.channels }}
+{{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
+  - name: channel-orgs--{{ $channel.name }}
+    steps:
+{{- range $orgName := $channel.orgs }}
+    - - name: {{ $orgName }}
+        template: channel-org--{{ $channel.name }}--{{ $orgName }}
+{{- end }} {{- /* channel.orgs */ -}}
+{{- end }} {{- /* if channel included */ -}}
+{{- end }} {{- /* channels */ -}}
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+
+# fifth level: channel-org templates
+{{- if $.Values.flow.channel.enabled }}
+{{- range $i, $channel := $.Values.network.channels }}
+{{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
+{{- range $orgName := $channel.orgs }}
+  - name: channel-org--{{ $channel.name }}--{{ $orgName }}
+    steps:
+    - - name: check-org-in-channel
+        template: check-org-in-channel--{{ $channel.name }}--{{ $orgName }}
+    - - name: add-org-to-channel
+        template: add-org-to-channel--{{ $channel.name }}--{{ $orgName }}
+        when: "!{{ "{{" }}steps.check-org-in-channel.outputs.result{{ "}}" }}"
+{{- end }} {{- /* channel.orgs */ -}}
+{{- end }} {{- /* if channel included */ -}}
+{{- end }} {{- /* channels */ -}}
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+
+# fifth level: add-org-to-consortium templates
+{{- if $.Values.flow.consortium.enabled }}
+{{- range $i, $consortium := $consortiums }}
+{{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
+{{- range $i, $org := (index $genesisProfile.Consortiums $consortium).Organizations }}
+{{- $orgName := $org.Name | trimSuffix "MSP" }}
+  - name: add-org-to-consortium--{{ $consortium }}--{{ $orgName }}
+    steps:
+    - - name: create-system-channel-config-update
+        template: create-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+    - - name: sign-system-channel-config-update
+        template: sign-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+        arguments:
+          artifacts:
+          - name: config_update_tx
+            from: "{{ "{{" }}steps.create-system-channel-config-update.outputs.artifacts.config_update_tx{{ "}}" }}"
+    - - name: send-system-channel-config-update
+        template: send-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+        arguments:
+          artifacts:
+          - name: signed_config_update_tx
+            from: "{{ "{{" }}steps.sign-system-channel-config-update.outputs.artifacts.signed_config_update_tx{{ "}}" }}"
+{{- end }} {{- /* consortium.orgs */ -}}
+{{- end }} {{- /* if consortium included */ -}}
+{{- end }} {{- /* consortiums */ -}}
+{{- end }} {{- /* if consortium.enabled */ -}}{{""}}
+
+# sixth level: add-org-to-channel templates
+{{- if $.Values.flow.channel.enabled }}
+{{- range $i, $channel := $.Values.network.channels }}
+{{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
+{{- range $orgName := $channel.orgs }}
+  - name: add-org-to-channel--{{ $channel.name }}--{{ $orgName }}
+    steps:
+    - - name: create-channel-config-update
+        template: create-channel-config-update--{{ $channel.name }}--{{ $orgName }}
+    - - name: sign-channel-config-update
+        template: sign-channel-config-update--{{ $channel.name }}--{{ $orgName }}
+        arguments:
+          artifacts:
+          - name: config_update_tx
+            from: "{{ "{{" }}steps.create-channel-config-update.outputs.artifacts.config_update_tx{{ "}}" }}"
+    - - name: send-channel-config-update
+        template: send-channel-config-update--{{ $channel.name }}
+        arguments:
+          artifacts:
+          - name: signed_config_update_tx
+            from: "{{ "{{" }}steps.sign-channel-config-update.outputs.artifacts.signed_config_update_tx{{ "}}" }}"
+{{- end }} {{- /* channel.orgs */ -}}
+{{- end }} {{- /* if channel included */ -}}
+{{- end }} {{- /* channels */ -}}
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+
+# sixth level sign-system-channel-config-update templates
+{{- if $.Values.flow.consortium.enabled }}
+{{- range $i, $consortium := $consortiums }}
+{{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
+{{- range $i, $org := (index $genesisProfile.Consortiums $consortium).Organizations }}
+{{- $orgName := $org.Name | trimSuffix "MSP" }}
+  - name: sign-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+    inputs:
+      artifacts:
+      - name: config_update_tx
+    steps: 
+{{- $_ := set $vars "firstSignature" true }}
+{{- range $i, $ordererOrg := $.Values.OrdererOrgs }}
+    - - name: sign-system-channel-config-update--{{ $ordererOrg.Name }}
+        template: sign-system-channel-config-update--{{ $ordererOrg.Name }}
+        arguments:
+          artifacts:
+          - name: config_update_tx
+          {{- if $vars.firstSignature }}
+            from: "{{ "{{" }}inputs.artifacts.config_update_tx{{ "}}" }}"
+          {{- else }}
+            from: "{{ "{{" }}steps.sign-system-channel-config-update--{{ $vars.previousOrgName }}.outputs.artifacts.signed_config_update_tx{{ "}}" }}"
+          {{- end }}
+{{- $_ := set $vars "firstSignature" false }}          
+{{- $_ := set $vars "previousOrgName" $ordererOrg.Name }}
+{{- end }} {{- /* OrdererOrgs  */ -}}{{""}}
+    outputs:
+      artifacts:
+      - name: signed_config_update_tx
+        from: "{{ "{{" }}steps.sign-system-channel-config-update--{{ $vars.previousOrgName }}.outputs.artifacts.signed_config_update_tx{{ "}}" }}"
+{{- end }} {{- /* consortium.orgs */ -}}
+{{- end }} {{- /* if consortium included */ -}}
+{{- end }} {{- /* consortiums */ -}}
+{{- end }} {{- /* if consortium.enabled */ -}}{{""}}
+
+# seventh level sign-channel-config-update templates
+{{- if $.Values.flow.channel.enabled }}
+{{- range $i, $channel := $.Values.network.channels }}
+{{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
+{{- range $orgName := $channel.orgs }}
+  - name: sign-channel-config-update--{{ $channel.name }}--{{ $orgName }}
+    inputs:
+      artifacts:
+      - name: config_update_tx
+    steps: 
+{{- $_ := set $vars "firstSignature" true }}
+{{- range $orgName := $channel.orgs }}
+    - - name: maybe-sign-channel-config-update--{{ $orgName }}
+        template: maybe-sign-channel-config-update--{{ $channel.name }}--{{ $orgName }}
+        arguments:
+          artifacts:
+          - name: config_update_tx
+          {{- if $vars.firstSignature }}
+            from: "{{ "{{" }}inputs.artifacts.config_update_tx{{ "}}" }}"
+          {{- else }}
+            from: "{{ "{{" }}steps.maybe-sign-channel-config-update--{{ $vars.previousOrgName }}.outputs.artifacts.signed_config_update_tx{{ "}}" }}"
+          {{- end }}
+{{- $_ := set $vars "firstSignature" false }}          
+{{- $_ := set $vars "previousOrgName" $orgName }}
+{{- end }} {{- /* channel.orgs */ -}}{{""}}
+    outputs:
+      artifacts:
+      - name: signed_config_update_tx
+        from: "{{ "{{" }}steps.maybe-sign-channel-config-update--{{ $vars.previousOrgName }}.outputs.artifacts.signed_config_update_tx{{ "}}" }}"
+
+{{- end }} {{- /* channel.orgs */ -}}
+{{- end }} {{- /* if channel included */ -}}
+{{- end }} {{- /* channels */ -}}
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+
+
+# leaf check-org-in-consortium templates
+{{- if $.Values.flow.consortium.enabled }}
+{{- range $i, $consortium := $consortiums }}
+{{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
+{{- range $i, $org := (index $genesisProfile.Consortiums $consortium).Organizations }}
+{{- $orgName := $org.Name | trimSuffix "MSP" }}
+
+{{- $ordererOrg := index $.Values.OrdererOrgs 0}}
+{{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
+
+  - name: check-org-in-consortium--{{ $consortium }}--{{ $orgName }}
+    # consortium: {{ $consortium }}
+    # org: {{ $orgName }}
+    inputs:
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+    script:
+      image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
+      command: [bash]
+      # we are echoing logs to stderr by >&2, since to stdout only true|false should be printed
+      source: |
+          mkdir -p /work && 
+          
+          peer channel fetch config /work/config_block.pb -c {{ $.Values.ordererSystemChannel }} -o {{ $ordererAddress }}:7050 \
+              {{- if $.Values.tlsEnabled }}
+                  --tls --cafile /hlf_config/orderer-tlsca/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem \
+              {{- end }}
+          && >&2 echo '-- fetched config block from orderer system channel {{ $.Values.ordererSystemChannel }}' &&
+          
+          configtxlator proto_decode --input /work/config_block.pb --type common.Block \
+                | jq .data.data[0].payload.data.config > /work/config.json &&
+          echo >&2 '-- trimmed envelope from config block and converted to json' &&
+
+          consortium=$(jq  '.channel_group.groups.Consortiums.groups."{{ $consortium }}"' /work/config.json) &&
+          if test "$consortium" == "null"; then
+            echo >&2 '-- failed to parse consortium {{ $consortium }} from config block, does it exist?'
+            exit 1
+          fi
+
+          org=$(echo $consortium | jq '.groups.{{ $orgName }}MSP') &&
+          if test "$org" == "null"; then
+            echo >&2 '-- peer organization {{ $orgName }} does not exist in the consortium {{ $consortium }}'
+            echo false
+          else
+            echo >&2 '-- peer organization {{ $orgName }} exists in the consortium {{ $consortium }}'
+            echo true
+          fi
+
+      volumeMounts:
+        
+        - mountPath: /hlf_config/orderer-tlsca
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: msp/tlscacerts
+
+        - mountPath: /etc/hyperledger/fabric/tls/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}--{{ $ordererHost | lower }}
+          subPath: tls
+        - mountPath: /etc/hyperledger/fabric/msp/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: admin/msp
+          
+
+        #- mountPath: /hlf_config/orderer-tlsca
+        #  name: orderer-tlsca
+        #- mountPath: /etc/hyperledger/fabric/tls/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
+        #- mountPath: /etc/hyperledger/fabric/msp/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
+        - mountPath: /hlf-scripts
+          name: hlf-scripts
+      
+      env:
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.logLevel }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $ordererOrg.Name }}MSP
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /etc/hyperledger/fabric/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /etc/hyperledger/fabric/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /etc/hyperledger/fabric/msp/tlscacerts/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem
+
+{{- end }} {{- /* consortium.orgs */ -}}
+{{- end }} {{- /* if consortium included */ -}}
+{{- end }} {{- /* consortiums */ -}}
+{{- end }} {{- /* if consortium.enabled */ -}}{{""}}
+
+# leaf create-system-channel-config-update templates
+{{- if $.Values.flow.consortium.enabled }}
+{{- range $i, $consortium := $consortiums }}
+{{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
+{{- range $i, $org := (index $genesisProfile.Consortiums $consortium).Organizations }}
+{{- $orgName := $org.Name | trimSuffix "MSP" }}
+
+{{- $ordererOrg := index $.Values.OrdererOrgs 0}}
+{{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
+
+{{- range $i, $peerOrg := $.Values.PeerOrgs }}
+{{- if eq $orgName $peerOrg.Name }}
+
+  - name: create-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+    # consortium: {{ $consortium }}
+    # org: {{ $orgName }}
+    outputs:
+      artifacts:
+      - name: config_update_tx
+        path: /work/update.pb
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+    script:
+      image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
+      command: [bash]
+      source: |
+          mkdir -p /work && 
+            
+          configtxgen -printOrg {{ $orgName }}MSP -configPath=/hlf_config/ > /work/new_org.json && 
+          echo '-- printed new org {{ $orgName }}MSP to new_org.json' && 
+            
+          peer channel fetch config /work/config_block.pb -c {{ $.Values.ordererSystemChannel }} -o {{ $ordererAddress }}:7050 \
+              {{- if $.Values.tlsEnabled }}
+                  --tls --cafile /hlf_config/orderer-tlsca/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem \
+              {{- end }}
+          && echo '-- fetched config block from orderer system channel {{ $.Values.ordererSystemChannel }}' && 
+                      
+          configtxlator proto_decode --input /work/config_block.pb --type common.Block \
+                | jq .data.data[0].payload.data.config > /work/config.json && 
+          echo '-- trimmed envelope from config block and converted to json' && 
+          
+          /hlf-scripts/add_newpeerorg_to_consortium.sh {{ $orgName }}MSP {{ $consortium }} /work/new_org.json /work/config.json /work/updated_config.json && 
+          /hlf-scripts/prepare_config_update_block.sh {{ $.Values.ordererSystemChannel }} /work/config.json /work/updated_config.json /work/update.pb
+
+      volumeMounts:
+
+        
+        {{- range $i, $mount_org := $.Values.OrdererOrgs }}
+        - mountPath: /hlf-orderer--{{ $mount_org.Name | lower}}
+          name: hlf-orderer--{{ $mount_org.Name | lower}}
+        {{- end }}
+
+        {{- range $i, $mount_org := $.Values.PeerOrgs }}
+        - mountPath: /hlf-peer-org--{{ $mount_org.Name | lower}}
+          name: hlf-peer-org--{{ $mount_org.Name | lower}}
+        {{- end }}
+        - mountPath: /hlf_config/orderer-tlsca
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: msp/tlscacerts
+
+        - mountPath: /etc/hyperledger/fabric/tls/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}--{{ $ordererHost | lower }}
+          subPath: tls
+        
+        - mountPath: /etc/hyperledger/fabric/msp/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: admin/msp
+
+        - mountPath: /hlf_config/crypto-config/peerOrganizations/{{ $peerOrg.Domain }}/msp/
+          name: hlf-peer-org--{{ $peerOrg.Name | lower }}
+          subPath: msp
+          
+        #- mountPath: /hlf_config/orderer-tlsca
+        #  name: orderer-tlsca
+        #- mountPath: /etc/hyperledger/fabric/tls/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
+        #- mountPath: /etc/hyperledger/fabric/msp/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
+
+        #- mountPath: /hlf_config/crypto-config/peerOrganizations/{{ $peerOrg.Domain}}/msp/
+        #  name: org-{{ $orgName | lower }}-msp
+        - mountPath: /hlf_config/
+          name: hlf-configtx
+        - mountPath: /hlf-scripts
+          name: hlf-scripts
+      
+      env:
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.logLevel }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $ordererOrg.Name }}MSP
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /etc/hyperledger/fabric/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /etc/hyperledger/fabric/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /etc/hyperledger/fabric/msp/tlscacerts/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem
+
+{{- end }} {{- /* if peerOrg */ -}} 
+{{- end }} {{- /* PeerOrgs */ -}}
+{{- end }} {{- /* consortium.orgs */ -}}
+{{- end }} {{- /* if consortium included */ -}}
+{{- end }} {{- /* consortiums */ -}}
+{{- end }} {{- /* if consortium.enabled */ -}}{{""}}
+
+
+# leaf sign-system-channel-config-update templates
+{{- if $.Values.flow.consortium.enabled }}
+{{- range $i, $ordererOrg := $.Values.OrdererOrgs}}
+
+  - name: sign-system-channel-config-update--{{ $ordererOrg.Name }}
+    inputs:
+      artifacts:
+      - name: config_update_tx
+        path: /work/update.pb
+    outputs:
+      artifacts:
+      - name: signed_config_update_tx
+        path: /work/update.pb
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+
+    container:
+      image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
+      command: ["sh", "-c", "peer channel signconfigtx -f /work/update.pb"]
+
+      volumeMounts:
+        - mountPath: /etc/hyperledger/fabric/msp/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: admin/msp
+
+        #- mountPath: /etc/hyperledger/fabric/msp/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
+      env:
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $ordererOrg.Name }}MSP
+        
+{{- end }} {{- /* OrdererOrgs */ -}}
+{{- end }} {{- /* consortium enabled */ -}}{{""}}
+
+# leaf send-system-channel-config-update templates
+{{- if $.Values.flow.consortium.enabled }}
+{{- range $i, $consortium := $consortiums }}
+{{- if or (not $.Values.flow.consortium.include) (has $consortium $.Values.flow.consortium.include) }}
+{{- range $i, $org := (index $genesisProfile.Consortiums $consortium).Organizations }}
+{{- $orgName := $org.Name | trimSuffix "MSP" }}
+
+{{- $ordererOrg := index $.Values.OrdererOrgs 0}}
+{{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
+
+{{- range $i, $peerOrg := $.Values.PeerOrgs }}
+{{- if eq $orgName $peerOrg.Name }}
+
+  - name: send-system-channel-config-update--{{ $consortium }}--{{ $orgName }}
+    inputs:
+      artifacts:
+      - name: signed_config_update_tx
+        path: /work/signed_update.pb
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+        
+    container:
+      image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
+      command: ["sh", "-c", "peer channel update -f /work/signed_update.pb -c {{ $.Values.ordererSystemChannel }} -o {{ $ordererAddress }}:7050 \
+                                  {{- if $.Values.tlsEnabled }}
+                                      --tls --cafile /hlf_config/orderer-tlsca/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem \
+                                  {{- end }}
+                                  "]
+
+      volumeMounts:
+
+        
+        {{- range $i, $mount_org := $.Values.OrdererOrgs }}
+        - mountPath: /hlf-orderer--{{ $mount_org.Name | lower}}
+          name: hlf-orderer--{{ $mount_org.Name | lower}}
+        {{- end }}
+
+        {{- range $i, $mount_org := $.Values.PeerOrgs }}
+        - mountPath: /hlf-peer-org--{{ $mount_org.Name | lower}}
+          name: hlf-peer-org--{{ $mount_org.Name | lower}}
+        {{- end }}
+
+        #- mountPath: /hlf-orderer--{{ $ordererOrg.Name | lower}}
+        #  name: hlf-orderer--{{ $ordererOrg.Name | lower}}
+        
+        #- mountPath: /hlf-peer-org--{{ $peerOrg.Name | lower}}
+        #  name: hlf-peer-org--{{ $peerOrg.Name | lower}}
+
+        #- mountPath: /hlf-data
+        #  name: hlf-data
+
+        - mountPath: /hlf_config/orderer-tlsca
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: msp/tlscacerts
+
+        - mountPath: /etc/hyperledger/fabric/tls/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}--{{ $ordererHost | lower }}
+          subPath: tls
+        - mountPath: /etc/hyperledger/fabric/msp/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: admin/msp
+
+        - mountPath: /hlf_config/crypto-config/peerOrganizations/{{ $peerOrg.Domain}}/msp/
+          name: hlf-peer-org--{{ $peerOrg.Name | lower }}
+          subPath: msp
+
+        #- mountPath: /hlf_config/orderer-tlsca
+        #  name: orderer-tlsca
+        #- mountPath: /etc/hyperledger/fabric/tls/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
+        #- mountPath: /etc/hyperledger/fabric/msp/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
+
+        #- mountPath: /hlf_config/crypto-config/peerOrganizations/{{ $peerOrg.Domain}}/msp/
+        #  name: org-{{ $peerOrg.Name | lower }}-msp
+        - mountPath: /hlf-scripts
+          name: hlf-scripts
+      
+      env:
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.logLevel }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $ordererOrg.Name }}MSP
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /etc/hyperledger/fabric/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /etc/hyperledger/fabric/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /etc/hyperledger/fabric/msp/tlscacerts/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem
+
+{{- end }} {{- /* if peerOrg */ -}} 
+{{- end }} {{- /* PeerOrgs */ -}}
+{{- end }} {{- /* consortium.orgs */ -}}
+{{- end }} {{- /* if consortium included */ -}}
+{{- end }} {{- /* consortiums */ -}}
+{{- end }} {{- /* if consortium.enabled */ -}}{{""}}
+
+
+# leaf check-channel-exists templates
+{{- if $.Values.flow.channel.enabled }}
+{{- range $i, $channel := $.Values.network.channels }}
+{{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
+
+{{- $ordererOrg := index $.Values.OrdererOrgs 0}}
+{{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
+
+  - name: check-channel-exists--{{ $channel.name }}
+    # channel: {{ $channel }}
+    inputs:
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+    script:
+      # image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
+      image: raft/hl-fabric-tools:1.4.1
+      command: [bash]
+      # we are echoing logs to stderr by >&2, since to stdout only true|false should be printed
+      source: |
+          if >&2 peer channel checkexists --channelID {{ $channel.name }} -o {{ $ordererAddress }}:7050 \
+              {{- if $.Values.tlsEnabled }}
+                  --tls --cafile /hlf_config/orderer-tlsca/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem \
+              {{- end }}
+          ; then 
+            >&2 echo '-- channel {{ $channel.name }} exists' 
+            echo true
+            exit 0
+          else
+            result=$?
+            >&2 echo "-- result is: $result"
+            if test $result -ne 99; then
+              >&2 echo "-- result is not 99, exiting with $result"
+              exit $result
+            fi
+          fi
+
+          echo false
+
+
+      volumeMounts:
+        
+        - mountPath: /hlf_config/orderer-tlsca
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: msp/tlscacerts
+
+        - mountPath: /etc/hyperledger/fabric/tls/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}--{{ $ordererHost | lower }}
+          subPath: tls
+        - mountPath: /etc/hyperledger/fabric/msp/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: admin/msp
+
+
+        #- mountPath: /hlf_config/orderer-tlsca
+        #  name: orderer-tlsca
+        #- mountPath: /etc/hyperledger/fabric/tls/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
+        #- mountPath: /etc/hyperledger/fabric/msp/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
+        - mountPath: /hlf-scripts
+          name: hlf-scripts
+      
+      env:
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.logLevel }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $ordererOrg.Name }}MSP
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /etc/hyperledger/fabric/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /etc/hyperledger/fabric/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /etc/hyperledger/fabric/msp/tlscacerts/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem
+
+{{- end }} {{- /* if channel included */ -}}
+{{- end }} {{- /* channels */ -}}
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+
+
+# leaf check-org-in-channel templates
+{{- if $.Values.flow.channel.enabled }}
+{{- range $i, $channel := $.Values.network.channels }}
+{{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
+{{- range $orgName := $channel.orgs }}
+
+{{- $ordererOrg := index $.Values.OrdererOrgs 0}}
+{{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
+
+  - name: check-org-in-channel--{{ $channel.name }}--{{ $orgName }}
+    # channel: {{ $channel }}
+    # org: {{ $orgName }}
+    inputs:
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+    script:
+      image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
+      command: [bash]
+      # we are echoing logs to stderr by >&2, since to stdout only true|false should be printed
+      source: |
+          mkdir -p /work && 
+          
+          peer channel fetch config /work/config_block.pb -c {{ $channel.name }} -o {{ $ordererAddress }}:7050 \
+              {{- if $.Values.tlsEnabled }}
+                  --tls --cafile /hlf_config/orderer-tlsca/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem \
+              {{- end }}
+          && >&2 echo '-- fetched config block for channel {{ $channel.name }}' &&
+          
+          configtxlator proto_decode --input /work/config_block.pb --type common.Block \
+                | jq .data.data[0].payload.data.config > /work/config.json &&
+          echo >&2 '-- trimmed envelope from config block and converted to json' &&
+
+          application=$(jq  '.channel_group.groups.Application.groups."{{ $orgName }}MSP"' /work/config.json) &&
+          if test "$application" == "null"; then
+            echo false
+          else 
+            echo true
+          fi          
+
+      volumeMounts:
+        - mountPath: /hlf_config/orderer-tlsca
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: msp/tlscacerts
+
+        - mountPath: /etc/hyperledger/fabric/tls/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}--{{ $ordererHost | lower }}
+          subPath: tls
+        
+        - mountPath: /etc/hyperledger/fabric/msp/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: admin/msp
+
+        #- mountPath: /hlf_config/orderer-tlsca
+        #  name: orderer-tlsca
+        #- mountPath: /etc/hyperledger/fabric/tls/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
+        #- mountPath: /etc/hyperledger/fabric/msp/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
+      
+      env:
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.logLevel }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $ordererOrg.Name }}MSP
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /etc/hyperledger/fabric/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /etc/hyperledger/fabric/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /etc/hyperledger/fabric/msp/tlscacerts/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem
+
+{{- end }} {{- /* channel.orgs */ -}}
+{{- end }} {{- /* if channel included */ -}}
+{{- end }} {{- /* channels */ -}}
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+
+
+# leaf create-channel-config-update templates
+{{- if $.Values.flow.channel.enabled }}
+{{- range $i, $channel := $.Values.network.channels }}
+{{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
+{{- range $orgName := $channel.orgs }}
+
+{{- range $i, $org := $.Values.PeerOrgs }}
+{{- if eq $orgName $org.Name }}
+
+{{- $ordererOrg := index $.Values.OrdererOrgs 0}}
+{{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
+
+  - name: create-channel-config-update--{{ $channel.name }}--{{ $orgName }}
+    outputs:
+      artifacts:
+      - name: config_update_tx
+        path: /work/update.pb
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+        
+    script:
+      image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
+      command: [bash]
+      source: |
+        mkdir -p /work &&
+                             
+        configtxgen -printOrg {{ $orgName }}MSP -configPath=/hlf_config/ > /work/new_org.json &&
+        echo '-- printed new new_org.json' &&
+
+        peer channel fetch config /work/config_block.pb -c {{ $channel.name }} -o {{ $ordererAddress }}:7050 \
+            {{- if $.Values.tlsEnabled }}
+                --tls --cafile /hlf_config/orderer-tlsca/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem \
+            {{- end }}
+        && echo '-- fetched config block' &&
+        
+        configtxlator proto_decode --input /work/config_block.pb --type common.Block \
+              | jq .data.data[0].payload.data.config > /work/config.json &&
+        echo '-- trimmed envelope from config block and converted to json' &&
+        
+        /hlf-scripts/add_newpeerorg_to_channel_config.sh {{ $orgName }}MSP /work/new_org.json /work/config.json /work/updated_config.json &&
+        /hlf-scripts/prepare_config_update_block.sh {{ $channel.name }} /work/config.json /work/updated_config.json /work/update.pb
+
+      volumeMounts:
+        
+        
+        {{- range $i, $mount_org := $.Values.OrdererOrgs }}
+        - mountPath: /hlf-orderer--{{ $mount_org.Name | lower}}
+          name: hlf-orderer--{{ $mount_org.Name | lower}}
+        {{- end }}
+
+        {{- range $i, $mount_org := $.Values.PeerOrgs }}
+        - mountPath: /hlf-peer-org--{{ $mount_org.Name | lower}}
+          name: hlf-peer-org--{{ $mount_org.Name | lower}}
+        {{- end }}
+
+        - mountPath: /hlf_config/orderer-tlsca
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: msp/tlscacerts
+
+        - mountPath: /etc/hyperledger/fabric/tls/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}--{{ $ordererHost | lower }}
+          subPath: tls
+
+        - mountPath: /etc/hyperledger/fabric/msp/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: admin/msp
+
+        - mountPath: /hlf_config/crypto-config/peerOrganizations/{{ $org.Domain }}/msp/
+          name: hlf-peer-org--{{ $orgName | lower }}
+          subPath: msp
+
+        #- mountPath: /hlf_config/orderer-tlsca
+        #  name: orderer-tlsca
+        #- mountPath: /etc/hyperledger/fabric/tls/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
+        #- mountPath: /etc/hyperledger/fabric/msp/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
+
+        #- mountPath: /hlf_config/crypto-config/peerOrganizations/{{ $org.Domain}}/msp/
+        #  name: org-{{ $orgName | lower }}-msp
+        - mountPath: /hlf_config/
+          name: hlf-configtx
+        - mountPath: /hlf-scripts
+          name: hlf-scripts
+      
+      env:
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.logLevel }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $ordererOrg.Name }}MSP
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /etc/hyperledger/fabric/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /etc/hyperledger/fabric/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /etc/hyperledger/fabric/msp/tlscacerts/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem
+
+{{- end }} {{- /* if org */ -}} 
+{{- end }} {{- /* PeerOrgs */ -}}
+{{- end }} {{- /* channel.orgs */ -}}
+{{- end }} {{- /* if channel included */ -}}
+{{- end }} {{- /* channels */ -}}
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+
+
+# leaf maybe-sign-channel-config-update templates
+{{- if $.Values.flow.channel.enabled }}
+{{- range $i, $channel := $.Values.network.channels }}
+{{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
+{{- range $orgName := $channel.orgs }}
+
+{{- $ordererOrg := index $.Values.OrdererOrgs 0}}
+{{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
+
+  - name: maybe-sign-channel-config-update--{{ $channel.name }}--{{ $orgName }}
+    inputs:
+      artifacts:
+      - name: config_update_tx
+        path: /work/update.pb
+    outputs:
+      artifacts:
+      - name: signed_config_update_tx
+        path: /work/update.pb
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+    script:
+      image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
+      command: [bash]
+      source: |
+          mkdir -p /work && 
+          
+          peer channel fetch config /work/config_block.pb -c {{ $channel.name }} -o {{ $ordererAddress }}:7050 \
+              {{- if $.Values.tlsEnabled }}
+                  --tls --cafile /hlf_config/orderer-tlsca/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem \
+              {{- end }}
+          && echo '-- fetched config block for channel {{ $channel.name }}' &&
+          
+          configtxlator proto_decode --input /work/config_block.pb --type common.Block \
+                | jq .data.data[0].payload.data.config > /work/config.json &&
+          echo '-- trimmed envelope from config block and converted to json' &&
+
+          application=$(jq  '.channel_group.groups.Application.groups."{{ $orgName }}MSP"' /work/config.json) &&
+          if test "$application" == "null"; then
+            echo '-- peer org {{ $orgName }} is not in channel {{ $channel.name }}, skipping signing config update'
+            exit 0
+          else 
+            echo '-- peer org {{ $orgName }} is in channel {{ $channel.name }}, will sign config update..'
+          fi &&
+
+          # we fetched the config by first orderer MSP, now switch to org MSP to sign the config update
+          CORE_PEER_LOCALMSPID={{ $orgName }}MSP \
+          CORE_PEER_MSPCONFIGPATH=/etc/hyperledger/fabric/org-admin-msp/ \
+          peer channel signconfigtx -f /work/update.pb 
+
+      volumeMounts:
+
+        - mountPath: /hlf_config/orderer-tlsca
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: msp/tlscacerts
+
+        - mountPath: /etc/hyperledger/fabric/tls/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}--{{ $ordererHost | lower }}
+          subPath: tls
+        - mountPath: /etc/hyperledger/fabric/msp/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: admin/msp
+
+        - mountPath: /etc/hyperledger/fabric/org-admin-msp/
+          name: hlf-peer-org--{{ $orgName | lower }}
+          subPath: admin/msp
+
+        #- mountPath: /hlf_config/orderer-tlsca
+        #  name: orderer-tlsca
+        #- mountPath: /etc/hyperledger/fabric/tls/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
+        #- mountPath: /etc/hyperledger/fabric/msp/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
+        #- mountPath: /etc/hyperledger/fabric/org-admin-msp/
+        #  name: peer-{{ $orgName | lower }}-admin-msp
+
+      env:
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.logLevel }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $ordererOrg.Name }}MSP
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /etc/hyperledger/fabric/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /etc/hyperledger/fabric/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /etc/hyperledger/fabric/msp/tlscacerts/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem
+
+{{- end }} {{- /* channel.orgs */ -}}
+{{- end }} {{- /* if channel included */ -}}
+{{- end }} {{- /* channels */ -}}
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+
+
+# leaf send-channel-config-update templates
+{{- if $.Values.flow.channel.enabled }}
+{{- range $i, $channel := $.Values.network.channels }}
+{{- if or (not $.Values.flow.channel.include) (has $channel.name $.Values.flow.channel.include) }}
+
+{{- $ordererOrg := index $.Values.OrdererOrgs 0}}
+{{- $ordererHost := (index $ordererOrg.Specs 0).Hostname }}
+
+  - name: send-channel-config-update--{{ $channel.name }}
+    inputs:
+      artifacts:
+      - name: signed_config_update_tx
+        path: /work/signed_update.pb
+    retryStrategy:
+      limit: {{ $.Values.retryCount }}
+        
+    container:
+      image: hyperledger/fabric-tools:{{ $.Values.hyperledgerVersion }}
+      command: ["sh", "-c", "peer channel update -f /work/signed_update.pb -c {{ $channel.name }} -o {{ $ordererAddress }}:7050 \
+                                  {{- if $.Values.tlsEnabled }}
+                                      --tls --cafile /hlf_config/orderer-tlsca/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem \
+                                  {{- end }}
+                                  "]
+
+      volumeMounts:
+
+        - mountPath: /hlf_config/orderer-tlsca
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: msp/tlscacerts
+
+        - mountPath: /etc/hyperledger/fabric/tls/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}--{{ $ordererHost | lower }}
+          subPath: tls
+        
+        - mountPath: /etc/hyperledger/fabric/msp/
+          name: hlf-orderer--{{ $ordererOrg.Name | lower }}
+          subPath: admin/msp
+
+        #- mountPath: /hlf_config/orderer-tlsca
+        #  name: orderer-tlsca
+        #- mountPath: /etc/hyperledger/fabric/tls/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-{{ $ordererHost | lower }}-tls
+        #- mountPath: /etc/hyperledger/fabric/msp/
+        #  name: orderer-{{ $ordererOrg.Name | lower }}-admin-msp
+      
+      env:
+        - name: FABRIC_LOGGING_SPEC
+          value: {{ $.Values.logLevel }}
+        - name: CORE_PEER_LOCALMSPID
+          value: {{ $ordererOrg.Name }}MSP
+        - name: CORE_PEER_TLS_CERT_FILE
+          value: /etc/hyperledger/fabric/tls/server.crt
+        - name: CORE_PEER_TLS_KEY_FILE
+          value: /etc/hyperledger/fabric/tls/server.key
+        - name: CORE_PEER_TLS_ROOTCERT_FILE
+          value: /etc/hyperledger/fabric/msp/tlscacerts/hlf-ca--{{ $ordererOrg.Name | lower }}-7054.pem
+
+{{- end }} {{- /* if channel included */ -}}
+{{- end }} {{- /* channels */ -}}
+{{- end }} {{- /* if channel.enabled */ -}}{{""}}
+---

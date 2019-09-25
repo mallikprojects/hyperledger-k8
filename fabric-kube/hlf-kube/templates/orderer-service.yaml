@@ -1,0 +1,22 @@
+{{- range $i, $org := .Values.OrdererOrgs }}
+{{- range $i, $host := $org.Specs }}
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}
+  labels:
+    name: hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}
+    fqdn: {{ $host.Hostname }}.{{ $org.Domain }}
+    addToHostAliases: "true"
+spec:
+  type: ClusterIP
+  selector:
+    app: hlf-orderer--{{ $org.Name | lower }}--{{ $host.Hostname | lower }}
+  ports:
+  - protocol: TCP
+    port: 7050
+    name: grpc
+---
+{{- end }} {{- /* org.Specs */ -}}
+{{- end }} {{- /* OrdererOrgs */ -}}
