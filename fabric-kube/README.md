@@ -24,16 +24,18 @@
 * [FAQ and more](#faq-and-more)
 * [Conclusion](#conclusion)
 
-## [Introduction?](#intro) 
+## [Introduction](#intro) 
 This repository is a fork of https://github.com/APGGroeiFabriek/PIVT . I have done changes to use Fabric CA to generate certificates and private keys than using cryptogen (not recommended for production).
 ## [What is this?](#what-is-this)
 This repository contains a couple of Helm charts to:
 * Configure and launch the whole HL Fabric network, either:
   * A simple one, one peer per organization and Solo orderer
   * Or scaled up one, multiple peers per organization and Kafka or Raft orderer
+  *	Custom Network architectures (Multi cluster architectures are not supported in this release)
+* Register identities with Fabric CA and generate necessary artifacts to setup up blockchain network
 * Populate the network declaratively:
   * Create the channels, join peers to channels, update channels for Anchor peers
-  * Install/Instantiate all chaincodes, or some of them, or upgrade them to newer version
+  * Install/Instantiate all chaincodes, or some of them, or upgrade them to newer version . 
 * Add new peer organizations to an already running network declaratively
 * Backup and restore the state of whole network
 
@@ -42,19 +44,26 @@ based on this [patch](https://gerrit.hyperledger.org/r/c/fabric/+/32197), **use 
 If you don't want this behaviour, you can use [release/0.7](https://github.com/APGGroeiFabriek/PIVT/tree/release/0.7) branch.
 
 ## [Who made this?](#who-made-this)
-This is a fork of https://github.com/APGGroeiFabriek/PIVT. Additional customizations are done to use Fabric CA to generate certificates and private keys than using cryptogen 
+This is a fork of https://github.com/APGGroeiFabriek/PIVT. Additional customizations are done to use Fabric CA to generate certificates and private keys than using cryptogen
 ## [License](#License)
 This work is licensed under the same license with HL Fabric; [Apache License 2.0](LICENSE).
 
 ## [Requirements](#requirements)
-* A running Kubernetes cluster, Minikube should also work, but not tested
-* [HL Fabric binaries](https://hyperledger-fabric.readthedocs.io/en/release-1.4/install.html)
+* A running Kubernetes cluster, developed with with AKS v1.13 . Minikube should also work, but not tested
 * [Helm](https://github.com/helm/helm/releases/tag/v2.11.0), developed with 2.11, newer 2.xx versions should also work
 * [jq](https://stedolan.github.io/jq/download/) 1.5+ and [yq](https://pypi.org/project/yq/) 2.6+
 * [Argo](https://github.com/argoproj/argo/blob/master/demo.md), both CLI and Controller
 * [Minio](https://github.com/argoproj/argo/blob/master/ARTIFACT_REPO.md), only required for backup/restore and new-peer-org flows
+* Persistent Volumes (https://kubernetes.io/docs/concepts/storage/persistent-volumes/) to store crypto data and generated assets – Developed with Azurefile as PV
 * Run all the commands in *fabric-kube* folder
 * AWS EKS users please also apply this [fix](https://github.com/APGGroeiFabriek/PIVT/issues/1)
+
+## Vault to store certificates and Private keys
+Current version uses Persistent Volumes (PV) to store all generated certificates and private keys. Utilites to create AzureFile as persistent Volume are in 
+*Storage/azurefile/azure-file-sc.yaml* – Create Persistent Volume
+*Storage/azurefile/azure-pvc-roles.yaml* – Grant necessary permissions
+**Note:** PV might not be the right approach to store certificates and private keys. Future versions will use a more precise Vault (HashiCorp Vault,  Azure Vault)  to store all sensitive information.
+
 
 ## [Network Architecture](#network-architecture)
 
