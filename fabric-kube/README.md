@@ -21,7 +21,6 @@
   * [Backup](#backup)
   * [Restore](#restore)
 * [Limitations](#limitations)
-* [FAQ and more](#faq-and-more)
 * [Conclusion](#conclusion)
 
 ## [Introduction](#intro) 
@@ -205,7 +204,7 @@ Then create necessary stuff:
 ```
 Intialize and start Fabric CA
 ```
-helm install ./hlf-init-kube --name hlf-init-kube -f samples/scaled-kafka/network.yaml -f samples/scaled-kafka/crypto-config.yaml -f samples/scaled-kafka/values.yaml -f samples/simple/vault.yaml
+helm install ./hlf-init-kube --name hlf-init-kube -f samples/scaled-kafka/network.yaml -f samples/scaled-kafka/crypto-config.yaml -f samples/scaled-kafka/values.yaml -f samples/scaled-kafka/vault.yaml
 ```
 
 Generate artifacts from Fabric CA
@@ -273,7 +272,7 @@ Then create necessary stuff:
 
 Intialize and start Fabric CA
 ```
-helm install ./hlf-init-kube --name hlf-init-kube -f samples/scaled-raft-tls/network.yaml -f samples/scaled-raft-tls/crypto-config.yaml -f samples/simple/vault.yaml
+helm install ./hlf-init-kube --name hlf-init-kube -f samples/scaled-raft-tls/network.yaml -f samples/scaled-raft-tls/crypto-config.yaml -f samples/scaled-raft-tls/vault.yaml
 ```
 
 Generate artifacts from Fabric CA
@@ -665,18 +664,18 @@ Currently this is not supported.
 
 Currently this is not supported. 
 
+### Backup & Restore 
 
-## [FAQ and more](#faq-and-more)
-
-Please see [FAQ](FAQ.md) page for further details. Also this [post](https://accenture.github.io/blog/2019/06/25/hl-fabric-meets-kubernetes.html) at Accenture's open source blog provides some additional information like motivation, how it works, benefits regarding NFR's, etc.
+Backup & Restore might not work with recent changes. This feature is in prgress 
 
 ## [Conclusion](#conclusion)
 
 This is forked from https://github.com/APGGroeiFabriek/PIVT. credits to https://github.com/APGGroeiFabriek/PIVT/commits?author=raftAtGit
 
 ### Roadmap
-* Vault support
-* Multi cluster support
+* Vault support (Hashicorp / Azure vault)
+* Operating HLF network spanned acrosss multiple clusters
+* Support for Intermediate CAs
 
 Stay tuned
 
