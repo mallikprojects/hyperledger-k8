@@ -109,13 +109,14 @@ Wait for all pods are up and running:
 kubectl get pod --watch
 ```
 In a few seconds, pods will come up:
-![Screenshot_pods](https://raft-fabric-kube.s3-eu-west-1.amazonaws.com/images/Screenshot_pods.png)
+![Screenshot_pods](https://github.com/mallikprojects/hyperledger-k8/blob/master/images/hlf-init-kube-pod-watch-simple.png)
 
 ### Register Identites with Fabric CA and generate artifacts
 ```
 helm template artifacts-flow/ -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml | argo submit - --watch
 ```
-
+Screen will look somethis like this
+![Screenshot_pods](https://github.com/mallikprojects/hyperledger-k8/blob/master/images/artifacts-flow-simple.png)
 Now, we are ready to launch the network:
 ```
 helm install ./hlf-kube --name hlf-kube -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml
@@ -128,7 +129,7 @@ Wait for all pods are up and running:
 kubectl get pod --watch
 ```
 In a few seconds, pods will come up:
-![Screenshot_pods](https://raft-fabric-kube.s3-eu-west-1.amazonaws.com/images/Screenshot_pods.png)
+![Screenshot_pods](https://github.com/mallikprojects/hyperledger-k8/blob/master/images/hlf-kube-pod-watch-simple.png)
 Congrulations you have a running HL Fabric network in Kubernetes!
 
 ### [Creating channels](#creating-channels)
@@ -138,7 +139,7 @@ Next lets create channels, join peers to channels and update channels for Anchor
 helm template channel-flow/ -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml | argo submit - --watch
 ```
 Wait for the flow to complete, finally you will see something like this:
-![Screenshot_channel_flow](https://raft-fabric-kube.s3-eu-west-1.amazonaws.com/images/Screenshot_channel_flow_declarative.png)
+![Screenshot_channel_flow](https://github.com/mallikprojects/hyperledger-k8/blob/master/images/channel-flow-simple.png)
 
 Channel flow is declarative and idempotent. You can run it many times. It will create the channel only if it doesn't exist, join peers to channels only if they didn't join yet, etc.
 
@@ -149,7 +150,7 @@ Next lets install/instantiate/invoke chaincodes
 helm template chaincode-flow/ -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml | argo submit - --watch
 ```
 Wait for the flow to complete, finally you will see something like this:
-![Screenshot_chaincode_flow](https://raft-fabric-kube.s3-eu-west-1.amazonaws.com/images/Screenshot_chaincode_flow_declarative.png)
+![Screenshot_chaincode_flow](https://github.com/mallikprojects/hyperledger-k8/blob/master/images/chaincode-flow-simple.png)
 
 Install steps may fail even many times, nevermind about it, it's a known [Fabric bug](https://jira.hyperledger.org/browse/FAB-15026), 
 the flow will retry it and eventually succeed.
@@ -172,14 +173,14 @@ Next invoke chaincode flow again:
 helm template chaincode-flow/ -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml --set chaincode.version=2.0 | argo submit - --watch
 ```
 All chaincodes are upgraded to version 2.0!
-![Screenshot_chaincode_upgade_all](https://raft-fabric-kube.s3-eu-west-1.amazonaws.com/images/Screenshot_chaincode_upgrade_all_declarative.png)
+![Screenshot_chaincode_upgade_all](https://github.com/mallikprojects/hyperledger-k8/blob/master/images/chaincode-flow-upgrade-2.png)
 
 Lets upgrade only the chaincode named `very-simple` to version 3.0:
 ```
 helm template chaincode-flow/ -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml --set chaincode.version=3.0 --set flow.chaincode.include={very-simple} | argo submit - --watch
 ```
 Chaincode `very-simple` is upgarded to version 3.0!
-![Screenshot_chaincode_upgade_single](https://raft-fabric-kube.s3-eu-west-1.amazonaws.com/images/Screenshot_chaincode_upgrade_single_declarative.png)
+![Screenshot_chaincode_upgade_single](https://github.com/mallikprojects/hyperledger-k8/blob/master/images/chaincode-flow-upgrade-3.png)
 
 Alternatively, you can also set chaincode versions individually via `network.chaincodes[].version`
 
