@@ -270,7 +270,7 @@ Then create necessary stuff:
 ./util.sh ./samples/scaled-raft-tls/ ./samples/chaincode/
 ```
 
-```
+
 Intialize and start Fabric CA
 ```
 helm install ./hlf-init-kube --name hlf-init-kube -f samples/scaled-raft-tls/network.yaml -f samples/scaled-raft-tls/crypto-config.yaml -f samples/simple/vault.yaml
@@ -360,8 +360,16 @@ Then override with extended ones:
 ```
 cp samples/simple/extended/* samples/simple/ && cp samples/simple/configtx.yaml hlf-kube/
 ```
+Update configtx 
+```
+helm upgrade hlf-init-kube ./hlf-init-kube -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml -f samples/simple/vault.yaml
+```
+create artifacts for new organization
+```
+helm template artifacts-flow/ -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml | argo submit - --watch
+```
 
-Then update the network for new crypto material and configtx and launch the new peers:
+Then update hlf-kube and  launch the new peers:
 ```
 helm upgrade hlf-kube ./hlf-kube -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml
 ```
@@ -418,12 +426,16 @@ Then override with extended ones:
 cp samples/scaled-raft-tls/extended/* samples/scaled-raft-tls/ && cp samples/scaled-raft-tls/configtx.yaml hlf-kube/
 ```
 
-Create new crypto material:
+Update configtx 
 ```
-./extend.sh samples/scaled-raft-tls
+helm upgrade hlf-init-kube ./hlf-init-kube -f samples/scaled-raft-tls/network.yaml -f samples/scaled-raft-tls/crypto-config.yaml -f samples/scaled-raft-tls/vault.yaml -f samples/scaled-raft-tls/persistence.yaml
+```
+create artifacts for new organization
+```
+helm template artifacts-flow/ -f samples/scaled-raft-tls/network.yaml -f samples/scaled-raft-tls/crypto-config.yaml | argo submit - --watch
 ```
 
-Update the network for new crypto material and configtx and launch new peers 
+Update the network and launch new peers 
 ```
 helm upgrade hlf-kube ./hlf-kube -f samples/scaled-raft-tls/network.yaml -f samples/scaled-raft-tls/crypto-config.yaml -f samples/scaled-raft-tls/persistence.yaml -f samples/scaled-raft-tls/hostAliases.yaml
 ```
@@ -480,21 +492,31 @@ This is Fabric's native configuration for `cryptogen` tool. We use it to define 
 `PeerOrgs`, `Template.Count` at PeerOrgs (peer count) and `Specs.Hostname[]` at OrdererOrgs.
 
 ```yaml
+# ---------------------------------------------------------------------------
+# "OrdererOrgs" - Definition of organizations managing orderer nodes
+# ---------------------------------------------------------------------------
 OrdererOrgs:
-  - Name: Groeifabriek
-    Domain: groeifabriek.nl
+  # ---------------------------------------------------------------------------
+  # Orderer
+  # ---------------------------------------------------------------------------
+  - Name: AreteOrderer 
+    Domain: arete.com
     Specs:
-      - Hostname: orderer
+      - Hostname: orderer0
+# ---------------------------------------------------------------------------
+# "PeerOrgs" - Definition of organizations managing peer nodes
+# ---------------------------------------------------------------------------
 PeerOrgs:
-  - Name: Karga
-    Domain: aptalkarga.tr
+  - Name: AreteCorporate
+    Domain: corporate.arete.com
     EnableNodeOUs: true
     Template:
-      Count: 1
+      Count: 2 
     Users:
       Count: 1
-  - Name: Nevergreen
-    Domain: nevergreen.nl
+  
+  - Name: ABCVendor 
+    Domain: vendor.abc.com
     EnableNodeOUs: true
     Template:
       Count: 1
@@ -509,16 +531,16 @@ network:
   # used by init script to create genesis block and by peer-org-flow to parse consortiums
   genesisProfile: OrdererGenesis
   # used by init script to create genesis block 
-  systemChannelID: testchainid
+  systemChannelID: aretechainid
 
   # defines which organizations will join to which channels
   channels:
     - name: common
       # all peers in these organizations will join the channel
-      orgs: [Karga, Nevergreen, Atlantis]
-    - name: private-karga-atlantis
+      orgs: [AreteCorporate, ABCVendor]
+    - name: private-arete
       # all peers in these organizations will join the channel
-      orgs: [Karga, Atlantis]
+      orgs: [AreteCorporate]
 
   # defines which chaincodes will be installed to which organizations
   chaincodes:
@@ -526,21 +548,23 @@ network:
       # if defined, this will override the global chaincode.version value
       version: # "2.0" 
       # chaincode will be installed to all peers in these organizations
-      orgs: [Karga, Nevergreen, Atlantis]
+      orgs: [AreteCorporate, ABCVendor]
       # at which channels are we instantiating/upgrading chaincode?
       channels:
       - name: common
         # chaincode will be instantiated/upgraded using the first peer in the first organization
         # chaincode will be invoked on all peers in these organizations
-        orgs: [Karga, Nevergreen, Atlantis]
-        policy: OR('KargaMSP.member','NevergreenMSP.member','AtlantisMSP.member')
+        orgs: [AreteCorporate, ABCVendor]
+        policy: OR('AreteCorporateMSP.member','ABCVendorMSP.member')
         
     - name: even-simpler
-      orgs: [Karga, Atlantis]
+      orgs: [AreteCorporate]
       channels:
-      - name: private-karga-atlantis
-        orgs: [Karga, Atlantis]
-        policy: OR('KargaMSP.member','AtlantisMSP.member')
+      - name: private-arete
+        orgs: [AreteCorporate]
+        policy: OR('AreteCorporateMSP.member')
+
+
 ```
 
 For chart specific configuration, please refer to the comments in the relevant [values.yaml](fabric-kube/hlf-kube/values.yaml) files.
@@ -570,7 +594,9 @@ manually back it up. In particular, Kafka Orderer with some state cannot handle 
 
 First lets create a persistent network:
 ```
-./init.sh ./samples/simple-persistent/ ./samples/chaincode/
+./util.sh ./samples/simple-persistent/ ./samples/chaincode/
+helm install --name hlf-init-kube -f samples/simple-persistent/network.yaml -f samples/simple-persistent/crypto-config.yaml -f samples/simple-persistent/values.yaml -f samples/simple-persistent/vault.yaml ./hlf-init-kube
+helm template artifacts-flow/ -f samples/simple-persistent/network.yaml -f samples/simple-persistent/crypto-config.yaml | argo submit - --watch
 helm install --name hlf-kube -f samples/simple-persistent/network.yaml -f samples/simple-persistent/crypto-config.yaml -f samples/simple-persistent/values.yaml ./hlf-kube
 ```
 Again lets wait for all pods are up and running, this may take a bit longer due to provisioning of disks.
