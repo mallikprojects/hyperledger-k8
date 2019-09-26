@@ -39,9 +39,9 @@ This repository contains a couple of Helm charts to:
 * Add new peer organizations to an already running network declaratively
 * Backup and restore the state of whole network
 
-**IMPORTANT:** Declarative flows use our home built [CLI tools](https://hub.docker.com/u/raft) 
+**IMPORTANT:** Declarative flows use  home built [CLI tools](https://hub.docker.com/u/raft) 
 based on this [patch](https://gerrit.hyperledger.org/r/c/fabric/+/32197), **use at your own risk!**
-If you don't want this behaviour, you can use [release/0.7](https://github.com/APGGroeiFabriek/PIVT/tree/release/0.7) branch.
+
 
 ## [Who made this?](#who-made-this)
 This is a fork of https://github.com/APGGroeiFabriek/PIVT. Additional customizations are done to use Fabric CA to generate certificates and private keys than using cryptogen
