@@ -60,8 +60,8 @@ This work is licensed under the same license with HL Fabric; [Apache License 2.0
 
 ## Vault to store Certificates and Private keys
 Current version uses Persistent Volumes (PV) to store all generated certificates and private keys. Utilites to create AzureFile as persistent Volume are in 
-*Storage/azurefile/azure-file-sc.yaml* – Create Persistent Volume
-*Storage/azurefile/azure-pvc-roles.yaml* – Grant necessary permissions
+* Storage/azurefile/azure-file-sc.yaml – Create Persistent Volume
+* Storage/azurefile/azure-pvc-roles.yaml – Grant necessary permissions
 **Note:** PV might not be the right approach to store certificates and private keys. Future versions will use a more precise Vault (HashiCorp Vault,  Azure Vault)  to store all sensitive information.
 
 
@@ -656,6 +656,15 @@ Transparent load balancing is not possible with TLS as of Fabric 1.4.2. So, inst
 
 This is possible but they should be run in different namespaces. We do not use Helm release name in names of components, 
 so if multiple instances of Fabric network is running in the same namespace, names will conflict.
+
+### Fabric Network on multiple clusters
+
+Currently this is not supported. 
+
+### Vault to store certificates and private key
+
+Currently this is not supported. 
+
 
 ## [FAQ and more](#faq-and-more)
 
