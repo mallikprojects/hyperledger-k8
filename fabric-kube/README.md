@@ -54,11 +54,11 @@ This work is licensed under the same license with HL Fabric; [Apache License 2.0
 * [jq](https://stedolan.github.io/jq/download/) 1.5+ and [yq](https://pypi.org/project/yq/) 2.6+
 * [Argo](https://github.com/argoproj/argo/blob/master/demo.md), both CLI and Controller
 * [Minio](https://github.com/argoproj/argo/blob/master/ARTIFACT_REPO.md), only required for backup/restore and new-peer-org flows
-* Persistent Volumes (https://kubernetes.io/docs/concepts/storage/persistent-volumes/) to store crypto data and generated assets – Developed with Azurefile as PV
+* [Persistent Volumes](https://kubernetes.io/docs/concepts/storage/persistent-volumes/) to store crypto data and generated assets – Developed with Azurefile as PV
 * Run all the commands in *fabric-kube* folder
 * AWS EKS users please also apply this [fix](https://github.com/APGGroeiFabriek/PIVT/issues/1)
 
-## Vault to store certificates and Private keys
+## Vault to store Certificates and Private keys
 Current version uses Persistent Volumes (PV) to store all generated certificates and private keys. Utilites to create AzureFile as persistent Volume are in 
 *Storage/azurefile/azure-file-sc.yaml* – Create Persistent Volume
 *Storage/azurefile/azure-pvc-roles.yaml* – Grant necessary permissions
@@ -90,21 +90,38 @@ helm dependency update ./hlf-kube/
 ```
 Then create necessary stuff:
 ```
-./init.sh ./samples/simple/ ./samples/chaincode/
+./util.sh ./samples/simple/ ./samples/chaincode/
 ```
 This script:
-* Creates the `Genesis block` using `genesisProfile` defined in 
-[network.yaml](fabric-kube/samples/simple/network.yaml) file in the project folder
-* Creates crypto material using `cryptogen` based on 
-[crypto-config.yaml](fabric-kube/samples/simple/crypto-config.yaml) file in the project folder
 * Compresses chaincodes as `tar` archives via `prepare_chaincodes.sh` script
-* Copies created stuff and configtx.yaml into main chart folder: `hlf-kube` 
+* Copies created stuff and configtx.yaml into main chart folder: `hlf-init-kube` 
+
+Initialize the network and start CA server
+
+```
+helm install ./hlf-init-kube --name hlf-init-kube -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml -f samples/simple/vault.yaml
+```
+This script:
+* creates PVC for all organizations (Orderer/Peer) , CA’s and peers/hosts associated to those organizations 
+* Start Fabric CA for each organization configured in crypto-config.yaml
+
+Wait for all pods are up and running:
+```
+kubectl get pod --watch
+```
+In a few seconds, pods will come up:
+![Screenshot_pods](https://raft-fabric-kube.s3-eu-west-1.amazonaws.com/images/Screenshot_pods.png)
+
+### Register Identites with Fabric CA and generate artifacts
+```
+helm template artifacts-flow/ -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml | argo submit - --watch
+```
 
 Now, we are ready to launch the network:
 ```
 helm install ./hlf-kube --name hlf-kube -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml
 ```
-This chart creates all the above mentioned secrets, pods, services, etc. cross configures them 
+This chart creates all the above mentioned secrets, pods, services, mount required persistent volume claims, etc. cross configures them 
 and launches the network in unpopulated state.
 
 Wait for all pods are up and running:
@@ -144,11 +161,11 @@ Lets assume you had updated chaincodes and want to upgrade them in the Fabric ne
 ```
 Then make sure chaincode ConfigMaps are updated with new chaincode tar archives:
 ```
-helm upgrade hlf-kube ./hlf-kube -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml  
+helm upgrade hlf-init-kube ./hlf-init-kube -f samples/simple/network.yaml -f samples/simple/crypto-config.yaml  
 ```
 Or alternatively you can update chaincode ConfigMaps directly:
 ```
-helm template -f samples/simple/network.yaml -x templates/chaincode-configmap.yaml ./hlf-kube/ | kubectl apply -f -
+helm template -f samples/simple/network.yaml -x templates/chaincode-configmap.yaml ./hlf-init-kube/ | kubectl apply -f -
 ```
 
 Next invoke chaincode flow again:
@@ -175,6 +192,7 @@ Now, lets launch a scaled up network backed by a Kafka cluster.
 First tear down everything:
 ```
 argo delete --all
+helm delete hlf-init-kube --purge
 helm delete hlf-kube --purge
 ```
 Wait a bit until all pods are terminated:
@@ -183,8 +201,18 @@ kubectl  get pod --watch
 ```
 Then create necessary stuff:
 ```
-./init.sh ./samples/scaled-kafka/ ./samples/chaincode/
+./util.sh ./samples/scaled-kafka/ ./samples/chaincode/
 ```
+Intialize and start Fabric CA
+```
+helm install ./hlf-init-kube --name hlf-init-kube -f samples/scaled-kafka/network.yaml -f samples/scaled-kafka/crypto-config.yaml -f samples/scaled-kafka/values.yaml -f samples/simple/vault.yaml
+```
+
+Generate artifacts from Fabric CA
+```
+helm template artifacts-flow/ -f samples/scaled-kafka/network.yaml -f samples/scaled-kafka/crypto-config.yaml | argo submit - --watch
+```
+
 Lets launch our scaled up Fabric network:
 ```
 helm install ./hlf-kube --name hlf-kube -f samples/scaled-kafka/network.yaml -f samples/scaled-kafka/crypto-config.yaml -f samples/scaled-kafka/values.yaml
@@ -230,6 +258,7 @@ useActualDomains: true
 First tear down everything:
 ```
 argo delete --all
+helm delete hlf-init-kube --purge
 helm delete hlf-kube --purge
 ```
 Wait a bit until all pods are terminated:
@@ -238,8 +267,20 @@ kubectl  get pod --watch
 ```
 Then create necessary stuff:
 ```
-./init.sh ./samples/scaled-raft-tls/ ./samples/chaincode/
+./util.sh ./samples/scaled-raft-tls/ ./samples/chaincode/
 ```
+
+```
+Intialize and start Fabric CA
+```
+helm install ./hlf-init-kube --name hlf-init-kube -f samples/scaled-raft-tls/network.yaml -f samples/scaled-raft-tls/crypto-config.yaml -f samples/simple/vault.yaml
+```
+
+Generate artifacts from Fabric CA
+```
+helm template artifacts-flow/ -f samples/scaled-raft-tls/network.yaml -f samples/scaled-raft-tls/crypto-config.yaml | argo submit - --watch
+```
+
 Lets launch our Raft based Fabric network in _broken_ state:
 ```
 helm install ./hlf-kube --name hlf-kube -f samples/scaled-raft-tls/network.yaml -f samples/scaled-raft-tls/crypto-config.yaml 
@@ -319,12 +360,6 @@ Then override with extended ones:
 ```
 cp samples/simple/extended/* samples/simple/ && cp samples/simple/configtx.yaml hlf-kube/
 ```
-
-Let's create the necessary stuff:
-```
-./extend.sh samples/simple
-```
-This script basically performs a `cryptogen extend` command to create missing crypto material.
 
 Then update the network for new crypto material and configtx and launch the new peers:
 ```
