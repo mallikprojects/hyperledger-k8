@@ -672,10 +672,10 @@ Please see [FAQ](FAQ.md) page for further details. Also this [post](https://acce
 
 ## [Conclusion](#conclusion)
 
-So happy BlockChaining in Kubernetes :)
+This is forked from https://github.com/APGGroeiFabriek/PIVT. credits to https://github.com/APGGroeiFabriek/PIVT/commits?author=raftAtGit
+Features in Roadmap
+1) Vault support
+2) Multi cluster support
 
-And don't forget the first rule of BlockChain club:
 
-**"Do not use BlockChain unless absolutely necessary!"**
 
-*Hakan Eryargi (r a f t)*
