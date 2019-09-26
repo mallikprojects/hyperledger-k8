@@ -10,195 +10,186 @@
 ################################################################################
 Organizations:
 
-    - &Groeifabriek
-        Name: GroeifabriekMSP
+    # SampleOrg defines an MSP using the sampleconfig.  It should never be used
+    # in production but may be used as a template for other definitions
+    - &AreteOrderer
+        # DefaultOrg defines the organization which is used in the sampleconfig
+        # of the fabric.git development environment
+        Name: AreteOrdererMSP
 
         # ID to load the MSP definition as
-        ID: GroeifabriekMSP
+        ID: AreteOrdererMSP
 
         # MSPDir is the filesystem path which contains the MSP configuration
-        MSPDir: crypto-config/ordererOrganizations/groeifabriek.nl/msp
+        MSPDir: /hlf-orderer--areteorderer/msp
 
         # Policies defines the set of policies at this level of the config tree
         # For organization policies, their canonical path is usually
         #   /Channel/<Application|Orderer>/<OrgName>/<PolicyName>
-        Policies:
-            Readers:
-                Type: Signature
-                Rule: "OR('GroeifabriekMSP.member')"
-            Writers:
-                Type: Signature
-                Rule: "OR('GroeifabriekMSP.member')"
-            Admins:
-                Type: Signature
-                Rule: "OR('GroeifabriekMSP.admin')"
+        # Policies:
+        #     Readers:
+        #         Type: Signature
+        #         Rule: "OR('AreteOrdererMSP.member')"
+        #     Writers:
+        #         Type: Signature
+        #         Rule: "OR('AreteOrdererMSP.member')"
+        #     Admins:
+        #         Type: Signature
+        #         Rule: "OR('AreteOrdererMSP.admin')"
 
-    - &Pivt
-        Name: PivtMSP
 
-        # ID to load the MSP definition as
-        ID: PivtMSP
-
-        MSPDir: crypto-config/ordererOrganizations/pivt.nl/msp
-
-        # Policies defines the set of policies at this level of the config tree
-        # For organization policies, their canonical path is usually
-        #   /Channel/<Application|Orderer>/<OrgName>/<PolicyName>
-        Policies:
-            Readers:
-                Type: Signature
-                Rule: "OR('PivtMSP.member')"
-            Writers:
-                Type: Signature
-                Rule: "OR('PivtMSP.member')"
-            Admins:
-                Type: Signature
-                Rule: "OR('PivtMSP.admin')"
-
-    - &Karga
-        Name: KargaMSP
-
-        # ID to load the MSP definition as
-        ID: KargaMSP
-
-        MSPDir: crypto-config/peerOrganizations/aptalkarga.tr/msp
-
-        # Policies defines the set of policies at this level of the config tree
-        # For organization policies, their canonical path is usually
-        #   /Channel/<Application|Orderer>/<OrgName>/<PolicyName>
-        Policies:
-            Readers:
-                Type: Signature
-                Rule: "OR('KargaMSP.admin', 'KargaMSP.peer', 'KargaMSP.client')"
-            Writers:
-                Type: Signature
-                Rule: "OR('KargaMSP.admin', 'KargaMSP.client')"
-            Admins:
-                Type: Signature
-                Rule: "OR('KargaMSP.admin')"
-
-        AnchorPeers:
-            # AnchorPeers defines the location of peers which can be used
-            # for cross org gossip communication.  Note, this value is only
-            # encoded in the genesis block in the Application section context
-            - Host: peer0.aptalkarga.tr
-              Port: 7051
-
-    - &Nevergreen
+    - &ABCOrderer
         # DefaultOrg defines the organization which is used in the sampleconfig
         # of the fabric.git development environment
-        Name: NevergreenMSP
+        Name: ABCOrdererMSP
 
         # ID to load the MSP definition as
-        ID: NevergreenMSP
+        ID: ABCOrdererMSP
 
-        MSPDir: crypto-config/peerOrganizations/nevergreen.nl/msp
+        # MSPDir is the filesystem path which contains the MSP configuration
+        MSPDir: /hlf-orderer--abcorderer/msp
 
         # Policies defines the set of policies at this level of the config tree
         # For organization policies, their canonical path is usually
         #   /Channel/<Application|Orderer>/<OrgName>/<PolicyName>
-        Policies:
-            Readers:
-                Type: Signature
-                Rule: "OR('NevergreenMSP.admin', 'NevergreenMSP.peer', 'NevergreenMSP.client')"
-            Writers:
-                Type: Signature
-                Rule: "OR('NevergreenMSP.admin', 'NevergreenMSP.client')"
-            Admins:
-                Type: Signature
-                Rule: "OR('NevergreenMSP.admin')"
+        # Policies:
+        #     Readers:
+        #         Type: Signature
+        #         Rule: "OR('AreteOrdererMSP.member')"
+        #     Writers:
+        #         Type: Signature
+        #         Rule: "OR('AreteOrdererMSP.member')"
+        #     Admins:
+        #         Type: Signature
+        #         Rule: "OR('AreteOrdererMSP.admin')"
 
-        AnchorPeers:
-            # AnchorPeers defines the location of peers which can be used
-            # for cross org gossip communication.  Note, this value is only
-            # encoded in the genesis block in the Application section context
-            - Host: peer0.nevergreen.nl
-              Port: 7051
 
-    - &Atlantis
+    - &AreteCorporate
         # DefaultOrg defines the organization which is used in the sampleconfig
         # of the fabric.git development environment
-        Name: AtlantisMSP
+        Name: AreteCorporateMSP
 
         # ID to load the MSP definition as
-        ID: AtlantisMSP
+        ID: AreteCorporateMSP
 
-        MSPDir: crypto-config/peerOrganizations/atlantis.com/msp
+        MSPDir: /hlf-peer-org--aretecorporate/msp
 
         # Policies defines the set of policies at this level of the config tree
         # For organization policies, their canonical path is usually
         #   /Channel/<Application|Orderer>/<OrgName>/<PolicyName>
-        Policies:
-            Readers:
-                Type: Signature
-                Rule: "OR('AtlantisMSP.admin', 'AtlantisMSP.peer', 'AtlantisMSP.client')"
-            Writers:
-                Type: Signature
-                Rule: "OR('AtlantisMSP.admin', 'AtlantisMSP.client')"
-            Admins:
-                Type: Signature
-                Rule: "OR('AtlantisMSP.admin')"
+        # Policies:
+        #     Readers:
+        #         Type: Signature
+        #         Rule: "OR('AreteCorporateMSP.admin', 'AreteCorporateMSP.peer', 'AreteCorporateMSP.client')"
+        #     Writers:
+        #         Type: Signature
+        #         Rule: "OR('AreteCorporateMSP.admin', 'AreteCorporateMSP.client')"
+        #     Admins:
+        #         Type: Signature
+        #         Rule: "OR('AreteCorporateMSP.admin')"
 
         AnchorPeers:
             # AnchorPeers defines the location of peers which can be used
             # for cross org gossip communication.  Note, this value is only
             # encoded in the genesis block in the Application section context
-            - Host: peer0.atlantis.com
+            - Host: peer0.corporate.arete.com
               Port: 7051
 
-    - &Valhalla
-        Name: ValhallaMSP
+    - &ABCVendor
+        # DefaultOrg defines the organization which is used in the sampleconfig
+        # of the fabric.git development environment
+        Name: ABCVendorMSP
 
         # ID to load the MSP definition as
-        ID: ValhallaMSP
+        ID: ABCVendorMSP
 
-        MSPDir: crypto-config/peerOrganizations/valhalla.asgard/msp
+        MSPDir: /hlf-peer-org--abcvendor/msp
 
         # Policies defines the set of policies at this level of the config tree
         # For organization policies, their canonical path is usually
         #   /Channel/<Application|Orderer>/<OrgName>/<PolicyName>
-        Policies:
-            Readers:
-                Type: Signature
-                Rule: "OR('ValhallaMSP.admin', 'ValhallaMSP.peer', 'ValhallaMSP.client')"
-            Writers:
-                Type: Signature
-                Rule: "OR('ValhallaMSP.admin', 'ValhallaMSP.client')"
-            Admins:
-                Type: Signature
-                Rule: "OR('ValhallaMSP.admin')"
+        # Policies:
+        #     Readers:
+        #         Type: Signature
+        #         Rule: "OR('ABCVendorMSP.admin', 'ABCVendorMSP.peer', 'ABCVendorMSP.client')"
+        #     Writers:
+        #         Type: Signature
+        #         Rule: "OR('ABCVendorMSP.admin', 'ABCVendorMSP.client')"
+        #     Admins:
+        #         Type: Signature
+        #         Rule: "OR('ABCVendorMSP.admin')"
 
         AnchorPeers:
-            - Host: peer0.valhalla.asgard
+            # AnchorPeers defines the location of peers which can be used
+            # for cross org gossip communication.  Note, this value is only
+            # encoded in the genesis block in the Application section context
+            - Host: peer0.vendor.abc.com
               Port: 7051
 
-    - &Cimmeria
-        Name: CimmeriaMSP
+    - &DEFVendor
+        # DefaultOrg defines the organization which is used in the sampleconfig
+        # of the fabric.git development environment
+        Name: DEFVendorMSP
 
         # ID to load the MSP definition as
-        ID: CimmeriaMSP
+        ID: DEFVendorMSP
 
-        MSPDir: crypto-config/peerOrganizations/cimmeria.hage/msp
+        MSPDir: /hlf-peer-org--defvendor/msp
 
         # Policies defines the set of policies at this level of the config tree
         # For organization policies, their canonical path is usually
         #   /Channel/<Application|Orderer>/<OrgName>/<PolicyName>
-        Policies:
-            Readers:
-                Type: Signature
-                Rule: "OR('CimmeriaMSP.admin', 'CimmeriaMSP.peer', 'CimmeriaMSP.client')"
-            Writers:
-                Type: Signature
-                Rule: "OR('CimmeriaMSP.admin', 'CimmeriaMSP.client')"
-            Admins:
-                Type: Signature
-                Rule: "OR('CimmeriaMSP.admin')"
+        # Policies:
+        #     Readers:
+        #         Type: Signature
+        #         Rule: "OR('ABCVendorMSP.admin', 'ABCVendorMSP.peer', 'ABCVendorMSP.client')"
+        #     Writers:
+        #         Type: Signature
+        #         Rule: "OR('ABCVendorMSP.admin', 'ABCVendorMSP.client')"
+        #     Admins:
+        #         Type: Signature
+        #         Rule: "OR('ABCVendorMSP.admin')"
 
         AnchorPeers:
-            - Host: peer0.cimmeria.hage
+            # AnchorPeers defines the location of peers which can be used
+            # for cross org gossip communication.  Note, this value is only
+            # encoded in the genesis block in the Application section context
+            - Host: peer0.vendor.def.com
               Port: 7051
-              
 
+
+
+
+    - &XYZVendor
+        # DefaultOrg defines the organization which is used in the sampleconfig
+        # of the fabric.git development environment
+        Name: XYZVendorMSP
+
+        # ID to load the MSP definition as
+        ID: XYZVendorMSP
+
+        MSPDir: /hlf-peer-org--xyzvendor/msp
+
+        # Policies defines the set of policies at this level of the config tree
+        # For organization policies, their canonical path is usually
+        #   /Channel/<Application|Orderer>/<OrgName>/<PolicyName>
+        # Policies:
+        #     Readers:
+        #         Type: Signature
+        #         Rule: "OR('ABCVendorMSP.admin', 'ABCVendorMSP.peer', 'ABCVendorMSP.client')"
+        #     Writers:
+        #         Type: Signature
+        #         Rule: "OR('ABCVendorMSP.admin', 'ABCVendorMSP.client')"
+        #     Admins:
+        #         Type: Signature
+        #         Rule: "OR('ABCVendorMSP.admin')"
+
+        AnchorPeers:
+            # AnchorPeers defines the location of peers which can be used
+            # for cross org gossip communication.  Note, this value is only
+            # encoded in the genesis block in the Application section context
+            - Host: peer0.vendor.xyz.com
+              Port: 7051
 ################################################################################
 #
 #   SECTION: Capabilities
@@ -267,16 +258,16 @@ Application: &ApplicationDefaults
     # Policies defines the set of policies at this level of the config tree
     # For Application policies, their canonical path is
     #   /Channel/Application/<PolicyName>
-    Policies:
-        Readers:
-            Type: ImplicitMeta
-            Rule: "ANY Readers"
-        Writers:
-            Type: ImplicitMeta
-            Rule: "ANY Writers"
-        Admins:
-            Type: ImplicitMeta
-            Rule: "MAJORITY Admins"
+    # Policies:
+    #     Readers:
+    #         Type: ImplicitMeta
+    #         Rule: "ANY Readers"
+    #     Writers:
+    #         Type: ImplicitMeta
+    #         Rule: "ANY Writers"
+    #     Admins:
+    #         Type: ImplicitMeta
+    #         Rule: "MAJORITY Admins"
 
     # Capabilities describes the application level capabilities, see the
     # dedicated Capabilities section elsewhere in this file for a full
@@ -300,7 +291,7 @@ Orderer: &OrdererDefaults
 
     Addresses:
         # - hlf-orderer--groeifabriek-0:7050
-        - orderer0.groeifabriek.nl:7050
+        - orderer0.arete.com:7050
 
     # Batch Timeout: The amount of time to wait before creating a batch
     BatchTimeout: 1s
@@ -322,18 +313,18 @@ Orderer: &OrdererDefaults
 
     EtcdRaft:
         Consenters:
-        - Host: orderer0.groeifabriek.nl
+        - Host: orderer0.arete.com
           Port: 7050
-          ClientTLSCert: crypto-config/ordererOrganizations/groeifabriek.nl/orderers/orderer0.groeifabriek.nl/tls/server.crt
-          ServerTLSCert: crypto-config/ordererOrganizations/groeifabriek.nl/orderers/orderer0.groeifabriek.nl/tls/server.crt
-        - Host: orderer1.groeifabriek.nl
+          ClientTLSCert: /hlf-orderer--areteorderer--orderer0/tls/server.crt
+          ServerTLSCert: /hlf-orderer--areteorderer--orderer0/tls/server.crt
+        - Host: orderer1.arete.com
           Port: 7050
-          ClientTLSCert: crypto-config/ordererOrganizations/groeifabriek.nl/orderers/orderer1.groeifabriek.nl/tls/server.crt
-          ServerTLSCert: crypto-config/ordererOrganizations/groeifabriek.nl/orderers/orderer1.groeifabriek.nl/tls/server.crt
-        - Host: orderer0.pivt.nl
+          ClientTLSCert: /hlf-orderer--areteorderer--orderer1/tls/server.crt
+          ServerTLSCert: /hlf-orderer--areteorderer--orderer1/tls/server.crt
+        - Host: orderer0.abc.com
           Port: 7050
-          ClientTLSCert: crypto-config/ordererOrganizations/pivt.nl/orderers/orderer0.pivt.nl/tls/server.crt
-          ServerTLSCert: crypto-config/ordererOrganizations/pivt.nl/orderers/orderer0.pivt.nl/tls/server.crt
+          ClientTLSCert: /hlf-orderer--abcorderer--orderer0/tls/server.crt
+          ServerTLSCert: /hlf-orderer--abcorderer--orderer0/tls/server.crt
 
         # Options to be specified for all the etcd/raft nodes. The values here
         # are the defaults for all new channels and can be modified on a
@@ -368,21 +359,21 @@ Orderer: &OrdererDefaults
     # Policies defines the set of policies at this level of the config tree
     # For Orderer policies, their canonical path is
     #   /Channel/Orderer/<PolicyName>
-    Policies:
-        Readers:
-            Type: ImplicitMeta
-            Rule: "ANY Readers"
-        Writers:
-            Type: ImplicitMeta
-            Rule: "ANY Writers"
-        Admins:
-            Type: ImplicitMeta
-            Rule: "MAJORITY Admins"
-        # BlockValidation specifies what signatures must be included in the block
-        # from the orderer for the peer to validate it.
-        BlockValidation:
-            Type: ImplicitMeta
-            Rule: "ANY Writers"
+    # Policies:
+    #     Readers:
+    #         Type: ImplicitMeta
+    #         Rule: "ANY Readers"
+    #     Writers:
+    #         Type: ImplicitMeta
+    #         Rule: "ANY Writers"
+    #     Admins:
+    #         Type: ImplicitMeta
+    #         Rule: "MAJORITY Admins"
+    #     # BlockValidation specifies what signatures must be included in the block
+    #     # from the orderer for the peer to validate it.
+    #     BlockValidation:
+    #         Type: ImplicitMeta
+    #         Rule: "ANY Writers"
 
     # Capabilities describes the orderer level capabilities, see the
     # dedicated Capabilities section elsewhere in this file for a full
@@ -402,19 +393,19 @@ Channel: &ChannelDefaults
     # Policies defines the set of policies at this level of the config tree
     # For Channel policies, their canonical path is
     #   /Channel/<PolicyName>
-    Policies:
-        # Who may invoke the 'Deliver' API
-        Readers:
-            Type: ImplicitMeta
-            Rule: "ANY Readers"
-        # Who may invoke the 'Broadcast' API
-        Writers:
-            Type: ImplicitMeta
-            Rule: "ANY Writers"
-        # By default, who may modify elements at this config level
-        Admins:
-            Type: ImplicitMeta
-            Rule: "MAJORITY Admins"
+    # Policies:
+    #     # Who may invoke the 'Deliver' API
+    #     Readers:
+    #         Type: ImplicitMeta
+    #         Rule: "ANY Readers"
+    #     # Who may invoke the 'Broadcast' API
+    #     Writers:
+    #         Type: ImplicitMeta
+    #         Rule: "ANY Writers"
+    #     # By default, who may modify elements at this config level
+    #     Admins:
+    #         Type: ImplicitMeta
+    #         Rule: "MAJORITY Admins"
 
     # Capabilities describes the channel level capabilities, see the
     # dedicated Capabilities section elsewhere in this file for a full
@@ -433,67 +424,39 @@ Channel: &ChannelDefaults
 Profiles:
 
     OrdererGenesis:
-        Capabilities:
-            <<: *ChannelCapabilities
+        <<: *ChannelDefaults
         Orderer:
             <<: *OrdererDefaults
             Organizations:
-                - *Groeifabriek
-                - *Pivt
-            Capabilities:
-                <<: *OrdererCapabilities
+                - *AreteOrderer
+                          
         Consortiums:
             TheConsortium:
                 Organizations:
-                    - *Karga
-                    - *Nevergreen
-                    - *Atlantis
-                    - *Valhalla
-                    - *Cimmeria
+                    - *AreteCorporate
+                    - *ABCVendor
+                    - *DEFVendor
+                    - *XYZVendor
             SecondConsortium:
                 Organizations:
-                    - *Karga
-                    - *Valhalla
-                    - *Cimmeria
-                    
+                    - *AreteCorporate
+
     common:
         Consortium: TheConsortium
+        <<: *ChannelDefaults
         Application:
             <<: *ApplicationDefaults
             Organizations:
-                - *Karga
-                - *Nevergreen
-                - *Atlantis
-            Capabilities:
-                <<: *ApplicationCapabilities
+                - *AreteCorporate
+                - *ABCVendor
+                - *DEFVendor
+                - *XYZVendor
 
-    private-karga-atlantis:
+    private-arete:
         Consortium: TheConsortium
+        <<: *ChannelDefaults
         Application:
             <<: *ApplicationDefaults
             Organizations:
-                - *Karga
-                - *Atlantis
-            Capabilities:
-                <<: *ApplicationCapabilities
-
-    private-valhalla-cimmeria:
-        Consortium: TheConsortium
-        Application:
-            <<: *ApplicationDefaults
-            Organizations:
-                - *Valhalla
-                - *Cimmeria
-            Capabilities:
-                <<: *ApplicationCapabilities
-
-    private-karga-valhalla-cimmeria:
-        Consortium: SecondConsortium
-        Application:
-            <<: *ApplicationDefaults
-            Organizations:
-                - *Karga
-                - *Valhalla
-                - *Cimmeria
-            Capabilities:
-                <<: *ApplicationCapabilities
+                - *AreteCorporate
+                

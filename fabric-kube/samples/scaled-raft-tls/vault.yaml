@@ -1,0 +1,6 @@
+vault:
+  type: pvc
+  pvc:
+    storageClass: azurefile
+    size: 1Gi
+ 

@@ -5,56 +5,48 @@ OrdererOrgs:
   # ---------------------------------------------------------------------------
   # Orderer
   # ---------------------------------------------------------------------------
-  - Name: Groeifabriek
-    Domain: groeifabriek.nl
+  - Name: AreteOrderer 
+    Domain: arete.com
     Specs:
       - Hostname: orderer0
       - Hostname: orderer1
-  - Name: Pivt
-    Domain: pivt.nl
+
+  - Name: ABCOrderer 
+    Domain: abc.com
     Specs:
       - Hostname: orderer0
 # ---------------------------------------------------------------------------
 # "PeerOrgs" - Definition of organizations managing peer nodes
 # ---------------------------------------------------------------------------
 PeerOrgs:
-  - Name: Karga
-    Domain: aptalkarga.tr
+  - Name: AreteCorporate
+    Domain: corporate.arete.com
     EnableNodeOUs: true
     Template:
-      Count: 2
+      Count: 2 
     Users:
       Count: 1
   
-  - Name: Nevergreen
-    Domain: nevergreen.nl
+  - Name: ABCVendor 
+    Domain: vendor.abc.com
     EnableNodeOUs: true
     Template:
-      Count: 2
+      Count: 1
     Users:
       Count: 1
 
-  - Name: Atlantis
-    Domain: atlantis.com
+  - Name: DEFVendor 
+    Domain: vendor.def.com
     EnableNodeOUs: true
     Template:
-      Count: 2
-    Users:
       Count: 1
-      
-  - Name: Valhalla
-    Domain: valhalla.asgard
-    EnableNodeOUs: true
-    Template:
-      Count: 2
     Users:
       Count: 1
 
-  - Name: Cimmeria
-    Domain: cimmeria.hage
+  - Name: XYZVendor 
+    Domain: vendor.xyz.com
     EnableNodeOUs: true
     Template:
-      Count: 2
+      Count: 1
     Users:
       Count: 1
-      
