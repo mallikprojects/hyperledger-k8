@@ -225,7 +225,7 @@ This time, in particular wait for 4 Kafka pods and 3 ZooKeeper pods are running 
 Kafka pods may crash and restart a couple of times, this is normal as ZooKeeper pods are not ready yet, 
 but eventually they will all come up.
 
-![Screenshot_pods_kafka](https://s3-eu-west-1.amazonaws.com/raft-fabric-kube/images/Screenshot_pods_kafka.png)
+![Screenshot_pods_kafka](https://github.com/mallikprojects/hyperledger-k8/blob/master/images/hlf-kube-init-pod-watch-kafka.png)
 
 Congrulations you have a running scaled up HL Fabric network in Kubernetes, with 3 Orderer nodes backed by a Kafka cluster 
 and 2 peers per organization. Your application can use them without even noticing there are 3 Orderer nodes and 2 peers per organization.
@@ -386,7 +386,7 @@ This flow:
 * Skips non-existing channels (they will be created by channel flow later)
 
 When the flow completes the output will be something like this:
-![Screenshot_peerorg_flow_declarative](https://raft-fabric-kube.s3-eu-west-1.amazonaws.com/images/Screenshot_peerorg_flow_declarative.png)
+![Screenshot_peerorg_flow_declarative](https://github.com/mallikprojects/hyperledger-k8/blob/master/images/peer-org-flow.png)
 
 By default, peer org flow updates all existing channels and consortiums as necessary. You can limit this behaviour by setting `flow.channel.include` and `flow.consortium.include` variables respectively.
 
@@ -616,7 +616,7 @@ Then take backup:
 ```
 helm template -f samples/simple-persistent/crypto-config.yaml --set backup.target.azureBlobStorage.accountName=<your account name> --set backup.target.azureBlobStorage.accessKey=<your access key> backup-flow/ | argo submit  -  --watch
 ```
-![Screenshot_backup_flow](https://s3-eu-west-1.amazonaws.com/raft-fabric-kube/images/Screenshot_backup_flow.png)
+
 
 This will create a folder with default `backup.key` (html formatted date `yyyy-mm-dd`), 
 in Azure Blob Storage and hierarchically store backed up contents there.
@@ -638,7 +638,7 @@ Then restore from backup:
 ```
 helm template --set backup.key='<backup key>' -f samples/simple-persistent/crypto-config.yaml --set backup.target.azureBlobStorage.accountName=<your account name> --set backup.target.azureBlobStorage.accessKey=<your access key> restore-flow/  | argo submit  -  --watch
 ```
-![Screenshot_restore_flow](https://s3-eu-west-1.amazonaws.com/raft-fabric-kube/images/Screenshot_restore_flow.png)
+
 
 Finally go back to normal operation:
 ```
