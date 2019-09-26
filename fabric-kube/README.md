@@ -673,9 +673,11 @@ Please see [FAQ](FAQ.md) page for further details. Also this [post](https://acce
 ## [Conclusion](#conclusion)
 
 This is forked from https://github.com/APGGroeiFabriek/PIVT. credits to https://github.com/APGGroeiFabriek/PIVT/commits?author=raftAtGit
-Features in Roadmap
-1) Vault support
-2) Multi cluster support
 
+### Roadmap
+* Vault support
+* Multi cluster support
+
+Stay tuned
 
 
